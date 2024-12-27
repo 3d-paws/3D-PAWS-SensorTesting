@@ -2,7 +2,7 @@
 
 Board Type : Particle Boron or Argon<BR>
 Description: ICDP Sensor Testing using a I2C Multiplexer - TCA9548.
-- Sensor configurations is hard coded in Sensors.h mux_sensor_config() function
+- Sensor configurations must be hand coded in Sensors.h mux_sensor_config() function
 - Observations are recorded and transmitted every minute.
 - Reports to Particle as event "ST"
 
