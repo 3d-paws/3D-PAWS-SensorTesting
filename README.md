@@ -1,4 +1,4 @@
-# ICDP_ST Sensor Testing (ICDP_ST)F
+# ICDP Sensor Testing (ICDP_ST)
 
 Board Type : Particle Boron or Argon<BR>
 Description: ICDP Sensor Testing using a I2C Multiplexer - TCA9548.
