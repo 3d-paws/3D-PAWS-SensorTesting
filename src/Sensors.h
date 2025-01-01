@@ -84,34 +84,34 @@ CH_SENSOR *chs;
 void mux_sensor_config() {
   // Mux Channel 0
   mux[0].inuse = true;
-
-  // b391
-  mux[0].sensor[0].type = b39;
-  mux[0].sensor[0].id = 1;
-  mux[0].sensor[0].address = 0x77;
-
   // mcp1
-  mux[0].sensor[1].type = mcp;
-  mux[0].sensor[1].id = 1;
-  mux[0].sensor[1].address = 0x18;
+  mux[0].sensor[0].type = mcp;
+  mux[0].sensor[0].id = 1;
+  mux[0].sensor[0].address = 0x18;
   
-#ifdef NOWAY
   // Mux Channel 1
   mux[1].inuse = true;
-  // b392
+  // b391
   mux[1].sensor[0].type = b39;
-  mux[1].sensor[0].id = 2;
+  mux[1].sensor[0].id = 1;
   mux[1].sensor[0].address = 0x77;
 
   // Mux Channel 2
   mux[2].inuse = true;
+  mux[2].sensor[0].type = hdc;
+  mux[2].sensor[0].id = 1;
+  mux[2].sensor[0].address = 0x46;
 
-  //b393
-  mux[2].sensor[0].type = b39;
-  mux[2].sensor[0].id = 3;
-  mux[2].sensor[0].address = 0x77;
-#endif
+  mux[2].sensor[1].type = hdc;
+  mux[2].sensor[1].id = 2;
+  mux[2].sensor[1].address = 0x47;
+
   // Mux Channel 3
+  mux[3].inuse = true;
+  mux[3].sensor[0].type = lps;
+  mux[3].sensor[0].id = 1;
+  mux[3].sensor[0].address = 0x5D;
+
   // Mux Channel 4
   // Mux Channel 5
   // Mux Channel 6

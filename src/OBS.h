@@ -308,8 +308,8 @@ void OBS_Do() {
                   dt = -999.9;
                   dh = -999.9;
                   if (hdc1.readTemperatureHumidityOnDemand(dt, dh, TRIGGERMODE_LP0)) {
-                    dt = (isnan(dt) || (t < QC_MIN_T)  || (dt > QC_MAX_T))  ? QC_ERR_T  : dt;
-                    dh = (isnan(dh) || (h < QC_MIN_RH) || (dh > QC_MAX_RH)) ? QC_ERR_RH : dh;
+                    dt = (isnan(dt) || (dt < QC_MIN_T)  || (dt > QC_MAX_T))  ? QC_ERR_T  : dt;
+                    dh = (isnan(dh) || (dh < QC_MIN_RH) || (dh > QC_MAX_RH)) ? QC_ERR_RH : dh;
                   }
                   writer.name("hdc1t").value(dt, 2);
                   writer.name("hdc1h").value(dh, 2);
