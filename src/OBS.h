@@ -15,6 +15,10 @@ void OBS_Do() {
   float h;
   double dt = -999.9;
   double dh = -999.9;
+  float e25;
+  float ec;
+  float vwc;
+  float w; // wet
 
   // Safty Check for Vaild Time
   if (!Time.isValid()) {
@@ -42,9 +46,14 @@ void OBS_Do() {
         chs = &mc->sensor[s];
 
         if (chs->type != UNKN) {
-          sprintf (Buffer32Bytes, "CH:%d S:%d,%s%d,0x%02x", 
-          c, s, sensor_type[chs->type], chs->id, chs->address);
+          sprintf (Buffer32Bytes, "CH:%d S:%d,%s%d,0x%02x,%s", 
+            c, s, sensor_type[chs->type], chs->id, chs->address,
+            sensor_state[chs->state]);
           Output (Buffer32Bytes);
+
+          if (chs->state == OFFLINE) {
+            continue;  // Skip reading this sensor
+          }
 
           // Initialize sensor mapping to appropriate substantiation
           switch (chs->type) {
@@ -430,12 +439,121 @@ void OBS_Do() {
               }
               break;
 
-            // Default  
+            // Tinovi Leaf Wetness
+            case tlw :
+              switch (chs->id) {
+                case 1 :
+                  tlw1.newReading();
+                  delay(100);
+                  w = tlw1.getWet();
+                  t = tlw1.getTemp();
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  writer.name("tlw1w").value(w, 2);
+                  writer.name("tlw1t").value(t, 2);
+                  break;
+
+                case 2 :
+                  tlw2.newReading();
+                  delay(100);
+                  w = tlw2.getWet();
+                  t = tlw2.getTemp();
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  writer.name("tlw2w").value(w, 2);
+                  writer.name("tlw2t").value(t, 2);
+                  break;
+
+                case 3 :
+                  tlw3.newReading();
+                  delay(100);
+                  w = tlw3.getWet();
+                  t = tlw3.getTemp();
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  writer.name("tlw3w").value(w, 2);
+                  writer.name("tlw3t").value(t, 2);
+                  break;
+
+                default :
+                  Output ("Invalid Sensor ID");
+                  break;
+              }
+              break;
+
+            // Tinovi Soil Moisture
+            case tsm :
+              switch (chs->id) {
+                case 1 :
+                  tsm1.newReading();
+                  delay(100);
+                  Output("getE25()");
+                  e25 = tsm1.getE25();
+                  Output("getEC()");
+                  ec = tsm1.getEC();
+                  Output("getVWC()");
+                  vwc = tsm1.getVWC();
+                  Output("getTemp()");
+                  t = tsm1.getTemp();
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  writer.name("tlw1e25").value(e25, 2);
+                  writer.name("tlw1ec").value(ec, 2);
+                  writer.name("tlw1vwc").value(vwc, 2);
+                  writer.name("tlw1t").value(t, 2);
+                  break;
+
+                case 2 :
+                  tsm1.newReading();
+                  delay(100);
+                  e25 = tsm2.getE25();
+                  ec = tsm2.getEC();
+                  vwc = tsm2.getVWC();
+                  t = tsm2.getTemp();
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  writer.name("tlw2e25").value(e25, 2);
+                  writer.name("tlw2ec").value(ec, 2);
+                  writer.name("tlw2vwc").value(vwc, 2);
+                  writer.name("tlw2t").value(t, 2);
+                  break;
+
+                case 3 :
+                  tsm1.newReading();
+                  delay(100);
+                  e25 = tsm3.getE25();
+                  ec = tsm3.getEC();
+                  vwc = tsm3.getVWC();
+                  t = tsm3.getTemp();
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  writer.name("tlw3e25").value(e25, 2);
+                  writer.name("tlw3ec").value(ec, 2);
+                  writer.name("tlw3vwc").value(vwc, 2);
+                  writer.name("tlw3t").value(t, 2);
+                  break;
+
+                default :
+                  Output ("Invalid Sensor ID");
+                  break;
+              }
+              break;
+
+            // Default - Sensor tyoe not found
             default :
               break;
           }
         }
       }
+    }
+  }
+
+  // Read and report Analog Pins
+  for (int pin=0; pin<ANALOG_PIN_COUNT; pin++) {
+    if (analog_pins[pin].inuse) {
+      char tag[16];
+
+      readAnalogPin(pin);
+      sprintf (tag, "%sm", pinNames[pin]);
+      writer.name(tag).value(analog_pins[pin].median);
+      sprintf (tag, "%sr", pinNames[pin]);
+      writer.name(tag).value(analog_pins[pin].raw);
+      sprintf (tag, "%sa", pinNames[pin]);
+      writer.name(tag).value(analog_pins[pin].average, 4);
     }
   }
 

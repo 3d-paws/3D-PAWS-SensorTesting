@@ -10,9 +10,9 @@
 #define HIH8000_ADDRESS   0x27
 
 typedef enum {
-  UNKN, bmp, bme, b38, b39, htu, sht, mcp, hdc, lps, hih
+  UNKN, bmp, bme, b38, b39, htu, sht, mcp, hdc, lps, hih, tlw, tsm 
 } SENSOR_TYPE;
-const char *sensor_type[] = {"UNKN", "bmp", "bme", "b38", "b39", "htu", "sht", "mcp", "hdc", "lps", "hih"};
+const char *sensor_type[] = {"UNKN", "bmp", "bme", "b38", "b39", "htu", "sht", "mcp", "hdc", "lps", "hih", "tlw", "tsm"};
 
 typedef enum { 
   OFFLINE,
@@ -79,6 +79,11 @@ CH_SENSOR *chs;
  * 
  * hih  0x27   only this address
  * 
+ * Tinovi Leaf Wetness
+ * tlw  0x61   only this address
+ * 
+ * Tinovi Soil Moisture
+ * tsm  0x63   only this address
  *=======================================================================================================================
  */
 void mux_sensor_config() {
@@ -113,6 +118,15 @@ void mux_sensor_config() {
   mux[3].sensor[0].address = 0x5D;
 
   // Mux Channel 4
+  mux[4].inuse = true;
+  mux[4].sensor[0].type = tlw;
+  mux[4].sensor[0].id = 1;
+  mux[4].sensor[0].address = 0x61;
+
+  mux[4].sensor[1].type = tsm;
+  mux[4].sensor[1].id = 1;
+  mux[4].sensor[1].address = 0x63;
+
   // Mux Channel 5
   // Mux Channel 6
   // Mux Channel 7
@@ -158,6 +172,14 @@ Adafruit_HDC302x hdc3;
 Adafruit_LPS35HW lps1;
 Adafruit_LPS35HW lps2;
 Adafruit_LPS35HW lps3;
+
+LeafSens tlw1;
+LeafSens tlw2;
+LeafSens tlw3;
+
+SVCS3 tsm1;
+SVCS3 tsm2;
+SVCS3 tsm3;
 
 /* 
  *=======================================================================================================================
@@ -222,7 +244,7 @@ void mux_sensor_initialize() {
         chs = &mc->sensor[s];
 
         if (chs->type != UNKN) {
-          sprintf (Buffer32Bytes, "CH:%d S:%d,%s%d,0x%02x", 
+          sprintf (Buffer32Bytes, "  CH:%d S:%d,%s%d,0x%02x", 
           c, s, sensor_type[chs->type], chs->id, chs->address);
           Output (Buffer32Bytes);
 
@@ -234,38 +256,38 @@ void mux_sensor_initialize() {
               switch (chs->id) {
                 case 1 : 
                   if (!bmp1.begin(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
                     float p = bmp1.readPressure();
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   }
                   break;
 
                 case 2 :
                   if (!bmp2.begin(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
                     float p = bmp2.readPressure();
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 case 3 :
                   if (!bmp3.begin(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
                     float p = bmp3.readPressure();
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
                 default :
-                  Output ("Invalid Sensor ID");
+                  Output ("    Invalid Sensor ID");
                   break;
               }
               break;
@@ -275,39 +297,39 @@ void mux_sensor_initialize() {
               switch (chs->id) {
                 case 1 : 
                   if (!bme1.begin(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
                     float p = bme1.readPressure();
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   }
                   break;
 
                 case 2 :
                   if (!bme2.begin(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
                     float p = bme2.readPressure();
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 case 3 :
                   if (!bme3.begin(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
                     float p = bme3.readPressure();
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 default :
-                  Output ("Invalid Sensor ID");
+                  Output ("    Invalid Sensor ID");
                   break;
               }
               break;
@@ -317,39 +339,39 @@ void mux_sensor_initialize() {
               switch (chs->id) {
                 case 1 : 
                   if (!b381.begin_I2C(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
                     float p = b381.readPressure();
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   }
                   break;
 
                 case 2 :
                   if (!b382.begin_I2C(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
                     float p = b382.readPressure();
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 case 3 :
                   if (!b383.begin_I2C(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
                     float p = b383.readPressure();
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 default :
-                  Output ("Invalid Sensor ID");
+                  Output ("    Invalid Sensor ID");
                   break;
               }
               break;
@@ -359,23 +381,23 @@ void mux_sensor_initialize() {
               switch (chs->id) {
                 case 1 : 
                   if (!b391.begin_I2C(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
                     float p = b391.readPressure();
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   }
                   break;
 
                 case 2 :
                   if (!b392.begin_I2C(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
                     float p = b392.readPressure();
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
@@ -386,12 +408,12 @@ void mux_sensor_initialize() {
                   else {
                     chs->state = ONLINE;
                     float p = b393.readPressure();
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 default :
-                  Output ("Invalid Sensor ID");
+                  Output ("    nvalid Sensor ID");
                   break;
               }
               break;
@@ -401,36 +423,36 @@ void mux_sensor_initialize() {
               switch (chs->id) {
                 case 1 : 
                   if (!htu1.begin()) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   }
                   break;
 
                 case 2 :
                   if (!htu2.begin()) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 case 3 :
                   if (!htu1.begin()) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 default :
-                  Output ("Invalid Sensor ID");
+                  Output ("    Invalid Sensor ID");
                   break;
               } 
               break;
@@ -441,38 +463,38 @@ void mux_sensor_initialize() {
                 case 1 :
                   sht1 = Adafruit_SHT31();
                   if (!sht1.begin(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   }
                   break;
 
                 case 2 :
                   sht2 = Adafruit_SHT31();
                   if (!sht2.begin(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 case 3 :
                   sht3 = Adafruit_SHT31();
                   if (!sht3.begin(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 default :
-                  Output ("Invalid Sensor ID");
+                  Output ("    Invalid Sensor ID");
                   break;
               }
               break;
@@ -483,38 +505,38 @@ void mux_sensor_initialize() {
                 case 1 :
                   mcp1 = Adafruit_MCP9808();
                   if (!mcp1.begin(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   }
                   break;
 
                 case 2 :
                   mcp2 = Adafruit_MCP9808();
                   if (!mcp2.begin(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 case 3 :
                   mcp3 = Adafruit_MCP9808();
                   if (!mcp3.begin(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 default :
-                  Output ("Invalid Sensor ID");
+                  Output ("    Invalid Sensor ID");
                   break;
               }
               break;
@@ -525,44 +547,44 @@ void mux_sensor_initialize() {
                 case 1 :
                   hdc1 = Adafruit_HDC302x();
                   if (!hdc1.begin(chs->address, &Wire)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     double t,h;
                     hdc1.readTemperatureHumidityOnDemand(t, h, TRIGGERMODE_LP0);
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   }
                   break;
 
                 case 2 :
                   hdc2 = Adafruit_HDC302x();
                   if (!hdc2.begin(chs->address, &Wire)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     double t,h;
                     hdc2.readTemperatureHumidityOnDemand(t, h, TRIGGERMODE_LP0);
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 case 3 :
                   hdc3 = Adafruit_HDC302x();
                   if (!hdc3.begin(chs->address, &Wire)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     double t,h;
                     hdc3.readTemperatureHumidityOnDemand(t, h, TRIGGERMODE_LP0);
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 default :
-                  Output ("Invalid Sensor ID");
+                  Output ("    Invalid Sensor ID");
                   break;
               }
               break;
@@ -573,38 +595,38 @@ void mux_sensor_initialize() {
                 case 1 :
                   lps1 = Adafruit_LPS35HW();
                   if (!lps1.begin_I2C(chs->address, &Wire)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   }
                   break;
 
                 case 2 :
                   lps2 = Adafruit_LPS35HW();
                   if (!lps2.begin_I2C(chs->address, &Wire)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 case 3 :
                   lps3 = Adafruit_LPS35HW();
                   if (!lps3.begin_I2C(chs->address, &Wire)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 default :
-                  Output ("Invalid Sensor ID");
+                  Output ("    Invalid Sensor ID");
                   break;
               }
               break;
@@ -614,36 +636,120 @@ void mux_sensor_initialize() {
               switch (chs->id) {
                 case 1 :
                   if (!I2C_Device_Exist(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   }
                   break;
 
                 case 2 :
                   if (!I2C_Device_Exist(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 case 3 :
                   if (!I2C_Device_Exist(chs->address)) { 
-                    Output ("OFFLINE");
+                    Output ("    OFFLINE");
                   }
                   else {
                     chs->state = ONLINE;
-                    Output ("ONLINE");
+                    Output ("    ONLINE");
                   } 
                   break;
 
                 default :
-                  Output ("Invalid Sensor ID");
+                  Output ("    Invalid Sensor ID");
+                  break;
+              }
+              break;
+
+            // Tinovi Leaf Wetness
+            case tlw :
+              switch (chs->id) {
+                case 1 :
+                  if (!I2C_Device_Exist(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    tlw1.init(chs->address);
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  }
+                  break;
+
+                case 2 :
+                  if (!I2C_Device_Exist(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    tlw2.init(chs->address);
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
+                case 3 :
+                  if (!I2C_Device_Exist(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    tlw3.init(chs->address);
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
+                default :
+                  Output ("    Invalid Sensor ID");
+                  break;
+              }
+              break;
+
+            // Tinovi Soil Moisture
+            case tsm :
+              switch (chs->id) {
+                case 1 :
+                  if (!I2C_Device_Exist(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    tsm1.init(chs->address);
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  }
+                  break;
+
+                case 2 :
+                  if (!I2C_Device_Exist(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    tsm2.init(chs->address);
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
+                case 3 :
+                  if (!I2C_Device_Exist(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    tsm3.init(chs->address);
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
+                default :
+                  Output ("    Invalid Sensor ID");
                   break;
               }
               break;

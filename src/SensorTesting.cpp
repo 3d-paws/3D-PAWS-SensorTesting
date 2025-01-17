@@ -1,3 +1,15 @@
+/******************************************************/
+//       THIS IS A GENERATED FILE - DO NOT EDIT       //
+/******************************************************/
+
+#include "Particle.h"
+#line 1 "/Users/rjbubon/Documents/Particle/3D-PAWS-SensorTesting/src/SensorTesting.ino"
+bool Particle_Publish(char *EventName);
+void HeartBeat();
+void BackGroundWork();
+void setup();
+void loop();
+#line 1 "/Users/rjbubon/Documents/Particle/3D-PAWS-SensorTesting/src/SensorTesting.ino"
 PRODUCT_VERSION(1);
 #define COPYRIGHT "Copyright [2024] [University Corporation for Atmospheric Research]"
 #define VERSION_INFO "ICDP_ST-20241227"
@@ -13,7 +25,6 @@ PRODUCT_VERSION(1);
  *   Author: Robert Bubon
  *   Date:  2024-12-27 RJB Initial Development
  *          2025-01-16 RJB Added A0-A5 in the observation output
- *          2025-01-17 RJB Added support for Tinovi Capacitive leaf wetness and Capacitive Soil Moisture sensors
  *
  * Non-Contact Capacitive leaf wetness, Temperature sensor
  * https://tinovi.com/shop/i2c-non-contact-capacitive-leaf-wetness-temperature/
