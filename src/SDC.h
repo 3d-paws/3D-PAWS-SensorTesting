@@ -61,7 +61,7 @@ void SD_LogObservation(char *observations) {
   if (fp) {
     fp.println(observations);
     fp.close();
-    Output ("OBS Logged to SD");
+    // Output ("OBS Logged to SD");
   }
   else {
     Output ("OBS Open Log Err");

@@ -138,6 +138,7 @@ void RTC_UpdateCheck() {
     }
     else if (LastTimeUpdate == 0){
       // We have never updated RTC from Cell network time 
+      // After boot, you will see this run after we have connected to Particle the first time.
       rtc.adjust(DateTime(Time.year(), Time.month(), Time.day(), Time.hour(), Time.minute(), Time.second() ));
 
       Output("RTC: 1ST SYNC");

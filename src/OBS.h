@@ -26,16 +26,19 @@ void OBS_Do() {
     return;
   }
 
-  Output("OBS_Do:");
+  // Output("OBS_Do:");
 
-  stc_timestamp();
-  Output(timestamp);
+  // stc_timestamp();  //System Clock
+  // Output(timestamp);
+
+  rtc_timestamp();  // RTC Clock, Global "DateTime now" is updated and timestamp string set
 
   memset(msgbuf, 0, sizeof(msgbuf));
   JSONBufferWriter writer(msgbuf, sizeof(msgbuf)-1);
 
   writer.beginObject();
   writer.name("at").value(timestamp);
+  writer.name("epoch").value(now.unixtime());
 
   for (int c=0; c<MUX_CHANNELS; c++) {
     mc = &mux[c];
@@ -46,10 +49,12 @@ void OBS_Do() {
         chs = &mc->sensor[s];
 
         if (chs->type != UNKN) {
+          /*
           sprintf (Buffer32Bytes, "CH:%d S:%d,%s%d,0x%02x,%s", 
             c, s, sensor_type[chs->type], chs->id, chs->address,
             sensor_state[chs->state]);
           Output (Buffer32Bytes);
+          */
 
           if (chs->state == OFFLINE) {
             continue;  // Skip reading this sensor
@@ -86,6 +91,15 @@ void OBS_Do() {
                   p = (isnan(p) || (p < QC_MIN_P)  || (p > QC_MAX_P))  ? QC_ERR_P  : p;
                   writer.name("bmp3t").value(t, 2);
                   writer.name("bmp3p").value(p, 4);
+                  break;
+
+                case 4 :
+                  t = bmp4.readTemperature();
+                  p = bmp4.readPressure()/100.0F;
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  p = (isnan(p) || (p < QC_MIN_P)  || (p > QC_MAX_P))  ? QC_ERR_P  : p;
+                  writer.name("bmp4t").value(t, 2);
+                  writer.name("bmp4p").value(p, 4);
                   break;
 
                 default :
@@ -133,6 +147,18 @@ void OBS_Do() {
                   writer.name("bme3h").value(h, 2);
                   break;
 
+                case 4 :
+                  t = bme4.readTemperature();
+                  p = bme4.readPressure()/100.0F;
+                  h = bme4.readHumidity();
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  p = (isnan(p) || (p < QC_MIN_P)  || (p > QC_MAX_P))  ? QC_ERR_P  : p;
+                  h = (isnan(h) || (h < QC_MIN_RH) || (h > QC_MAX_RH)) ? QC_ERR_RH : h;
+                  writer.name("bme4t").value(t, 2);
+                  writer.name("bme4p").value(p, 4);
+                  writer.name("bme4h").value(h, 2);
+                  break;
+
                 default :
                   Output ("Invalid Sensor ID");
                   break;
@@ -167,6 +193,15 @@ void OBS_Do() {
                   p = (isnan(p) || (p < QC_MIN_P)  || (p > QC_MAX_P))  ? QC_ERR_P  : p;
                   writer.name("b383t").value(t, 2);
                   writer.name("b383p").value(p, 4);
+                  break;
+
+                case 4 :
+                  t = b384.readTemperature();
+                  p = b384.readPressure()/100.0F;
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  p = (isnan(p) || (p < QC_MIN_P)  || (p > QC_MAX_P))  ? QC_ERR_P  : p;
+                  writer.name("b384t").value(t, 2);
+                  writer.name("b384p").value(p, 4);
                   break;
 
                 default :
@@ -205,6 +240,15 @@ void OBS_Do() {
                   writer.name("b393p").value(p, 4);
                   break;
 
+                case 4 :
+                  t = b394.readTemperature();
+                  p = b394.readPressure()/100.0F;
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  p = (isnan(p) || (p < QC_MIN_P)  || (p > QC_MAX_P))  ? QC_ERR_P  : p;
+                  writer.name("b394t").value(t, 2);
+                  writer.name("b394p").value(p, 4);
+                  break;
+
                 default :
                   Output ("Invalid Sensor ID");
                   break;
@@ -239,6 +283,15 @@ void OBS_Do() {
                   h = (isnan(h) || (h < QC_MIN_RH) || (h > QC_MAX_RH)) ? QC_ERR_RH : h;
                   writer.name("htu3t").value(t, 2);
                   writer.name("htu3h").value(h, 2);
+                  break;
+
+                case 4 :
+                  t = htu4.readTemperature();
+                  h = htu4.readHumidity();
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  h = (isnan(h) || (h < QC_MIN_RH) || (h > QC_MAX_RH)) ? QC_ERR_RH : h;
+                  writer.name("htu4t").value(t, 2);
+                  writer.name("htu4h").value(h, 2);
                   break;
 
                 default :
@@ -277,6 +330,15 @@ void OBS_Do() {
                   writer.name("sht3h").value(h, 2);
                   break;
 
+                case 4 :
+                  t = sht4.readTemperature();
+                  h = sht4.readHumidity();
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  h = (isnan(h) || (h < QC_MIN_RH) || (h > QC_MAX_RH)) ? QC_ERR_RH : h;
+                  writer.name("sht4t").value(t, 2);
+                  writer.name("sht4h").value(h, 2);
+                  break;
+
                 default :
                   Output ("Invalid Sensor ID");
                   break;
@@ -302,6 +364,12 @@ void OBS_Do() {
                   t = mcp3.readTempC();
                   t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
                   writer.name("mcp3t").value(t, 2);
+                  break;
+
+                case 4 :
+                  t = mcp4.readTempC();
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  writer.name("mcp4t").value(t, 2);
                   break;
 
                 default :
@@ -346,6 +414,17 @@ void OBS_Do() {
                   writer.name("hdc3h").value(dh, 2);
                   break;
 
+                case 4 :
+                  dt = -999.9;
+                  dh = -999.9;
+                  if (hdc4.readTemperatureHumidityOnDemand(dt, dh, TRIGGERMODE_LP0)) {
+                    dt = (isnan(dt) || (dt < QC_MIN_T)  || (dt > QC_MAX_T))  ? QC_ERR_T  : dt;
+                    dh = (isnan(dh) || (dh < QC_MIN_RH) || (dh > QC_MAX_RH)) ? QC_ERR_RH : dh;
+                  }
+                  writer.name("hdc4t").value(dt, 2);
+                  writer.name("hdc4h").value(dh, 2);
+                  break;
+
                 default :
                   Output ("Invalid Sensor ID");
                   break;
@@ -380,6 +459,15 @@ void OBS_Do() {
                   p = (isnan(p) || (p < QC_MIN_P)  || (p > QC_MAX_P))  ? QC_ERR_P  : p;
                   writer.name("lps3t").value(t, 2);
                   writer.name("lps3p").value(p, 4);
+                  break;
+
+                case 4 :
+                  t = lps4.readTemperature();
+                  p = lps4.readPressure();
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  p = (isnan(p) || (p < QC_MIN_P)  || (p > QC_MAX_P))  ? QC_ERR_P  : p;
+                  writer.name("lps4t").value(t, 2);
+                  writer.name("lps4p").value(p, 4);
                   break;
 
                 default :
@@ -433,6 +521,20 @@ void OBS_Do() {
                   writer.name("hih3h").value(h, 2);
                   break;
 
+                case 4 :
+                  t = 0.0;
+                  h = 0.0;
+
+                  if (!hih8_getTempHumid(&t, &h)) {
+                    t = -999.99;
+                    h = 0.0;
+                  }
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  h = (isnan(h) || (h < QC_MIN_RH) || (h > QC_MAX_RH)) ? QC_ERR_RH : h;
+                  writer.name("hih4t").value(t, 2);
+                  writer.name("hih4h").value(h, 2);
+                  break;
+
                 default :
                   Output ("Invalid Sensor ID");
                   break;
@@ -472,6 +574,16 @@ void OBS_Do() {
                   writer.name("tlw3t").value(t, 2);
                   break;
 
+                case 4 :
+                  tlw4.newReading();
+                  delay(100);
+                  w = tlw4.getWet();
+                  t = tlw4.getTemp();
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  writer.name("tlw4w").value(w, 2);
+                  writer.name("tlw4t").value(t, 2);
+                  break;
+
                 default :
                   Output ("Invalid Sensor ID");
                   break;
@@ -484,13 +596,9 @@ void OBS_Do() {
                 case 1 :
                   tsm1.newReading();
                   delay(100);
-                  Output("getE25()");
                   e25 = tsm1.getE25();
-                  Output("getEC()");
                   ec = tsm1.getEC();
-                  Output("getVWC()");
                   vwc = tsm1.getVWC();
-                  Output("getTemp()");
                   t = tsm1.getTemp();
                   t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
                   writer.name("tlw1e25").value(e25, 2);
@@ -500,7 +608,7 @@ void OBS_Do() {
                   break;
 
                 case 2 :
-                  tsm1.newReading();
+                  tsm2.newReading();
                   delay(100);
                   e25 = tsm2.getE25();
                   ec = tsm2.getEC();
@@ -514,7 +622,7 @@ void OBS_Do() {
                   break;
 
                 case 3 :
-                  tsm1.newReading();
+                  tsm3.newReading();
                   delay(100);
                   e25 = tsm3.getE25();
                   ec = tsm3.getEC();
@@ -525,6 +633,20 @@ void OBS_Do() {
                   writer.name("tlw3ec").value(ec, 2);
                   writer.name("tlw3vwc").value(vwc, 2);
                   writer.name("tlw3t").value(t, 2);
+                  break;
+
+                case 4 :
+                  tsm4.newReading();
+                  delay(100);
+                  e25 = tsm4.getE25();
+                  ec = tsm4.getEC();
+                  vwc = tsm4.getVWC();
+                  t = tsm4.getTemp();
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  writer.name("tlw4e25").value(e25, 2);
+                  writer.name("tlw4ec").value(ec, 2);
+                  writer.name("tlw4vwc").value(vwc, 2);
+                  writer.name("tlw4t").value(t, 2);
                   break;
 
                 default :
@@ -563,6 +685,7 @@ void OBS_Do() {
   SD_LogObservation(msgbuf);
   Serial_write (msgbuf);
 
+/*
   Time_of_last_obs = Time.now();
 
   Output ("Publish(ST)");
@@ -581,5 +704,6 @@ void OBS_Do() {
     PostedResults = false;
     Output ("Publish(FAILED)");
   }
+  */
 }
 

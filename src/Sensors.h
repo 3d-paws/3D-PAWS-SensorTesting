@@ -140,46 +140,58 @@ void mux_sensor_config() {
 Adafruit_BMP280 bmp1;
 Adafruit_BMP280 bmp2;
 Adafruit_BMP280 bmp3;
+Adafruit_BMP280 bmp4;
 
 Adafruit_BME280 bme1;
 Adafruit_BME280 bme2;
 Adafruit_BME280 bme3;
+Adafruit_BME280 bme4;
 
 Adafruit_BMP3XX b381;
 Adafruit_BMP3XX b382;
 Adafruit_BMP3XX b383;
+Adafruit_BMP3XX b384;
 
 Adafruit_BMP3XX b391;
 Adafruit_BMP3XX b392;
 Adafruit_BMP3XX b393;
+Adafruit_BMP3XX b394;
 
 Adafruit_HTU21DF htu1;
 Adafruit_HTU21DF htu2;
 Adafruit_HTU21DF htu3;
+Adafruit_HTU21DF htu4;
 
 Adafruit_SHT31 sht1;
 Adafruit_SHT31 sht2;
 Adafruit_SHT31 sht3;
+Adafruit_SHT31 sht4;
 
 Adafruit_MCP9808 mcp1;
 Adafruit_MCP9808 mcp2;
 Adafruit_MCP9808 mcp3;
+Adafruit_MCP9808 mcp4;
 
 Adafruit_HDC302x hdc1;
 Adafruit_HDC302x hdc2;
 Adafruit_HDC302x hdc3;
+Adafruit_HDC302x hdc4;
 
 Adafruit_LPS35HW lps1;
 Adafruit_LPS35HW lps2;
 Adafruit_LPS35HW lps3;
+Adafruit_LPS35HW lps4;
+
 
 LeafSens tlw1;
 LeafSens tlw2;
 LeafSens tlw3;
+LeafSens tlw4;
 
 SVCS3 tsm1;
 SVCS3 tsm2;
 SVCS3 tsm3;
+SVCS3 tsm4;
 
 /* 
  *=======================================================================================================================
@@ -188,9 +200,10 @@ SVCS3 tsm3;
  */
 void mux_channel_set(uint8_t i) {
   if (i > 7) return;
- 
+/*
   sprintf (Buffer32Bytes, "MUX:CHANNEL:%d SET", i);
   Output (Buffer32Bytes);
+*/
   Wire.beginTransmission(MUX_ADDR);
   Wire.write(1 << i);
   Wire.endTransmission();  
@@ -286,6 +299,18 @@ void mux_sensor_initialize() {
                     Output ("    ONLINE");
                   } 
                   break;
+
+                case 4 :
+                  if (!bmp4.begin(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    chs->state = ONLINE;
+                    float p = bmp4.readPressure();
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
                 default :
                   Output ("    Invalid Sensor ID");
                   break;
@@ -324,6 +349,17 @@ void mux_sensor_initialize() {
                   else {
                     chs->state = ONLINE;
                     float p = bme3.readPressure();
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
+                case 4 :
+                  if (!bme4.begin(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    chs->state = ONLINE;
+                    float p = bme4.readPressure();
                     Output ("    ONLINE");
                   } 
                   break;
@@ -370,6 +406,17 @@ void mux_sensor_initialize() {
                   } 
                   break;
 
+                case 4 :
+                  if (!b384.begin_I2C(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    chs->state = ONLINE;
+                    float p = b384.readPressure();
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
                 default :
                   Output ("    Invalid Sensor ID");
                   break;
@@ -412,6 +459,17 @@ void mux_sensor_initialize() {
                   } 
                   break;
 
+                case 4 :
+                  if (!b394.begin_I2C(chs->address)) { 
+                    Output ("OFFLINE");
+                  }
+                  else {
+                    chs->state = ONLINE;
+                    float p = b394.readPressure();
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
                 default :
                   Output ("    nvalid Sensor ID");
                   break;
@@ -442,7 +500,17 @@ void mux_sensor_initialize() {
                   break;
 
                 case 3 :
-                  if (!htu1.begin()) { 
+                  if (!htu3.begin()) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
+                case 4 :
+                  if (!htu4.begin()) { 
                     Output ("    OFFLINE");
                   }
                   else {
@@ -493,6 +561,16 @@ void mux_sensor_initialize() {
                   } 
                   break;
 
+                  sht4 = Adafruit_SHT31();
+                  if (!sht4.begin(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
                 default :
                   Output ("    Invalid Sensor ID");
                   break;
@@ -527,6 +605,17 @@ void mux_sensor_initialize() {
                 case 3 :
                   mcp3 = Adafruit_MCP9808();
                   if (!mcp3.begin(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
+                case 4 :
+                  mcp4 = Adafruit_MCP9808();
+                  if (!mcp4.begin(chs->address)) { 
                     Output ("    OFFLINE");
                   }
                   else {
@@ -583,6 +672,19 @@ void mux_sensor_initialize() {
                   } 
                   break;
 
+                case 4 :
+                  hdc4 = Adafruit_HDC302x();
+                  if (!hdc4.begin(chs->address, &Wire)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    double t,h;
+                    hdc4.readTemperatureHumidityOnDemand(t, h, TRIGGERMODE_LP0);
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
                 default :
                   Output ("    Invalid Sensor ID");
                   break;
@@ -625,6 +727,17 @@ void mux_sensor_initialize() {
                   } 
                   break;
 
+                case 4 :
+                  lps4 = Adafruit_LPS35HW();
+                  if (!lps4.begin_I2C(chs->address, &Wire)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
                 default :
                   Output ("    Invalid Sensor ID");
                   break;
@@ -655,6 +768,16 @@ void mux_sensor_initialize() {
                   break;
 
                 case 3 :
+                  if (!I2C_Device_Exist(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
+                case 4 :
                   if (!I2C_Device_Exist(chs->address)) { 
                     Output ("    OFFLINE");
                   }
@@ -706,6 +829,17 @@ void mux_sensor_initialize() {
                   } 
                   break;
 
+                case 4 :
+                  if (!I2C_Device_Exist(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    tlw4.init(chs->address);
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
                 default :
                   Output ("    Invalid Sensor ID");
                   break;
@@ -743,6 +877,17 @@ void mux_sensor_initialize() {
                   }
                   else {
                     tsm3.init(chs->address);
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
+                case 4 :
+                  if (!I2C_Device_Exist(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    tsm4.init(chs->address);
                     chs->state = ONLINE;
                     Output ("    ONLINE");
                   } 

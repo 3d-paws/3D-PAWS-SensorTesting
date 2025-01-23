@@ -14,7 +14,12 @@ PRODUCT_VERSION(1);
  *   Date:  2024-12-27 RJB Initial Development
  *          2025-01-16 RJB Added A0-A5 in the observation output
  *          2025-01-17 RJB Added support for Tinovi Capacitive leaf wetness and Capacitive Soil Moisture sensors
- *
+ *          2025-01-22 RJB 1 second observations
+ *                         Added support for 4 of each sensor
+ *                         Stopped publishing to Particle
+ *                         Commented out debug so serial out is only observers when in main loop
+ *                         Switched from system clock to rtc clock for time in OBS.h
+ *                         Bug fixes
  * Non-Contact Capacitive leaf wetness, Temperature sensor
  * https://tinovi.com/shop/i2c-non-contact-capacitive-leaf-wetness-temperature/
  *   https://github.com/tinovi/i2cArduino
@@ -302,17 +307,11 @@ void loop() {
     RTC_UpdateCheck();
 
     // Perform an Observation, Write to SD, and Transmit observation
-    if (Time.now() >= Time_of_next_obs) {
-      OBS_Do();
+    OBS_Do();
 
-      // Time of last obs in ms MOD 60 = Seconds since last period
-      // 60 - Seconds since last period = Seconds to next period
-      // Seconds to next period + current time in MS = next OBS time
-      Time_of_next_obs = (60 - (Time_of_last_obs % 60)) + Time.now();
-
-      // We are staying connected to the Cell network
-      // request time synchronization from the Cell network - Every 4 Hours
-      if ((System.millis() - LastTimeUpdate) > (4*3600*1000)) {
+    // Request time synchronization from the Cell network - Every 2 Hours
+    if ((System.millis() - LastTimeUpdate) > (2*3600*1000)) {
+      if (Particle.connected()) {
         // Note that this function sends a request message to the Cloud and then returns. 
         // The time on the device will not be synchronized until some milliseconds later when 
         // the Cloud responds with the current time between calls to your loop.
@@ -320,8 +319,11 @@ void loop() {
         // !!! What if we drop the Cell connection before we get a time update for the Cloud?
         Output ("NW TimeSync REQ");
         Particle.syncTime();
-        LastTimeUpdate = System.millis();
       }
+      else {
+        Output ("NW TimeSync NC!"); // Not Connected
+      }
+      LastTimeUpdate = System.millis();
     } 
   }
   else {

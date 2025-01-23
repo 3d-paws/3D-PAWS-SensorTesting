@@ -31,7 +31,7 @@ ANALOG_PIN analog_pins[ANALOG_PIN_COUNT];
 void analog_initialize() {
 
   // Pin A0
-  analog_pins[0].inuse = true;
+  analog_pins[0].inuse = false;
   analog_pins[0].numReadings = 3;
   analog_pins[0].delayMs = 200;
 
@@ -93,8 +93,8 @@ void readAnalogPin(int pin) {
       default: break;
     }
 
-    sprintf (Buffer32Bytes, "Pin A%d %d", pin, readings[i]);
-    Output(Buffer32Bytes);
+    //sprintf (Buffer32Bytes, "Pin A%d %d", pin, readings[i]);
+    //Output(Buffer32Bytes);
 
     total += readings[i];
     delay(analog_pins[pin].delayMs);
