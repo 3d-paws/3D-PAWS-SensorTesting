@@ -1,6 +1,6 @@
 PRODUCT_VERSION(1);
 #define COPYRIGHT "Copyright [2024] [University Corporation for Atmospheric Research]"
-#define VERSION_INFO "ICDP_ST-20241227"
+#define VERSION_INFO "ICDP_ST-20250124"
 
 /*
  *======================================================================================================================
@@ -20,6 +20,7 @@ PRODUCT_VERSION(1);
  *                         Commented out debug so serial out is only observers when in main loop
  *                         Switched from system clock to rtc clock for time in OBS.h
  *                         Bug fixes
+ * 
  * Non-Contact Capacitive leaf wetness, Temperature sensor
  * https://tinovi.com/shop/i2c-non-contact-capacitive-leaf-wetness-temperature/
  *   https://github.com/tinovi/i2cArduino
@@ -31,6 +32,13 @@ PRODUCT_VERSION(1);
  *   https://github.com/tinovi/LeafArduinoI2c
  *   https://tinovi.com/wp-content/uploads/2021/10/Leaf-Wetness-i2c-2021-10-11.pdf
  *   i2c:0x63
+ * 
+ * SOIL-MULTI-5-I2C I2C Capacitive multi level soil moisture, temperature sensor
+ * https://tinovi.com/shop/soil-multi-5-i2c-i2c-capacitive-soil-moisture-temperature-sensor/
+ *   https://github.com/tinovi/i2cMultiSoilArduino/tree/master/lib
+ *   https://tinovi.com/wp-content/uploads/2024/07/SOIL-MULTI-5-I2C.pdf
+ *   i2c: 0x65
+ * 
  */
 
 #define W4SC false   // Set true to Wait for Serial Console to be connected

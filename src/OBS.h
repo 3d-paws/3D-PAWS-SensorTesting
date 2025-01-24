@@ -31,7 +31,7 @@ void OBS_Do() {
   // stc_timestamp();  //System Clock
   // Output(timestamp);
 
-  rtc_timestamp();  // RTC Clock, Global "DateTime now" is updated and timestamp string set
+  rtc_timestamp();  // Use RTC Clock, Global Variable "DateTime now;" is updated and timestamp string set
 
   memset(msgbuf, 0, sizeof(msgbuf));
   JSONBufferWriter writer(msgbuf, sizeof(msgbuf)-1);
