@@ -20,17 +20,19 @@ PRODUCT_VERSION(1);
  *                         Commented out debug so serial out is only observers when in main loop
  *                         Switched from system clock to rtc clock for time in OBS.h
  *                         Bug fixes
+ *          2025-02-13 RJB Bug Fix for SHT31 #4
+ *  
  * 
  * Non-Contact Capacitive leaf wetness, Temperature sensor
  * https://tinovi.com/shop/i2c-non-contact-capacitive-leaf-wetness-temperature/
  *   https://github.com/tinovi/i2cArduino
- *   https://tinovi.com/wp-content/uploads/2022/08/PM-WCS-3-I2C.pdf
+ *   https://tinovi.com/wp-content/uploads/2021/10/Leaf-Wetness-i2c-2021-10-11.pdf
  *   i2c:0x61
  * 
  * PM-WCS-3-I2C I2C Non-Contact Capacitive Soil Moisture, Temperature sensor
  * https://tinovi.com/shop/i2c-capacitive-soil-moisture-temperature-and-ec-sensor-variation-cable/
  *   https://github.com/tinovi/LeafArduinoI2c
- *   https://tinovi.com/wp-content/uploads/2021/10/Leaf-Wetness-i2c-2021-10-11.pdf
+ *   https://tinovi.com/wp-content/uploads/2022/08/PM-WCS-3-I2C.pdf
  *   i2c:0x63
  * 
  * SOIL-MULTI-5-I2C I2C Capacitive multi level soil moisture, temperature sensor
@@ -38,6 +40,9 @@ PRODUCT_VERSION(1);
  *   https://github.com/tinovi/i2cMultiSoilArduino/tree/master/lib
  *   https://tinovi.com/wp-content/uploads/2024/07/SOIL-MULTI-5-I2C.pdf
  *   i2c: 0x65
+ * 
+ * Adafruit STEMMA Soil Sensor - I2C Capacitive Moisture Sensor
+ * https://learn.adafruit.com/adafruit-stemma-soil-sensor-i2c-capacitive-moisture-sensor
  * 
  */
 
@@ -341,4 +346,3 @@ void loop() {
     delay (DELAY_NO_RTC);   
   }
 }
-

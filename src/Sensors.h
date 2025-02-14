@@ -561,6 +561,7 @@ void mux_sensor_initialize() {
                   } 
                   break;
 
+                case 4 :
                   sht4 = Adafruit_SHT31();
                   if (!sht4.begin(chs->address)) { 
                     Output ("    OFFLINE");
