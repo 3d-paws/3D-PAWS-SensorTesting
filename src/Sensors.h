@@ -166,6 +166,10 @@ Adafruit_SHT31 sht1;
 Adafruit_SHT31 sht2;
 Adafruit_SHT31 sht3;
 Adafruit_SHT31 sht4;
+Adafruit_SHT31 sht5;
+Adafruit_SHT31 sht6;
+Adafruit_SHT31 sht7;
+Adafruit_SHT31 sht8;
 
 Adafruit_MCP9808 mcp1;
 Adafruit_MCP9808 mcp2;
@@ -564,6 +568,50 @@ void mux_sensor_initialize() {
                 case 4 :
                   sht4 = Adafruit_SHT31();
                   if (!sht4.begin(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
+                case 5 :
+                  sht5 = Adafruit_SHT31();
+                  if (!sht5.begin(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  }
+                  break;
+
+                case 6 :
+                  sht6 = Adafruit_SHT31();
+                  if (!sht6.begin(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
+                case 7 :
+                  sht7 = Adafruit_SHT31();
+                  if (!sht7.begin(chs->address)) { 
+                    Output ("    OFFLINE");
+                  }
+                  else {
+                    chs->state = ONLINE;
+                    Output ("    ONLINE");
+                  } 
+                  break;
+
+                case 8 :
+                  sht8 = Adafruit_SHT31();
+                  if (!sht8.begin(chs->address)) { 
                     Output ("    OFFLINE");
                   }
                   else {

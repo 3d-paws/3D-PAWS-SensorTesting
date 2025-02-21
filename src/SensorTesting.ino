@@ -21,6 +21,7 @@ PRODUCT_VERSION(1);
  *                         Switched from system clock to rtc clock for time in OBS.h
  *                         Bug fixes
  *          2025-02-13 RJB Bug Fix for SHT31 #4
+ *          2025-02-21 RJB Added suport for SHT 5-8
  *  
  * 
  * Non-Contact Capacitive leaf wetness, Temperature sensor

@@ -339,6 +339,42 @@ void OBS_Do() {
                   writer.name("sht4h").value(h, 2);
                   break;
 
+                case 5 :
+                  t = sht5.readTemperature();
+                  h = sht5.readHumidity();
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  h = (isnan(h) || (h < QC_MIN_RH) || (h > QC_MAX_RH)) ? QC_ERR_RH : h;
+                  writer.name("sht5t").value(t, 2);
+                  writer.name("sht5h").value(h, 2);
+                  break;
+
+                case 6 :
+                  t = sht6.readTemperature();
+                  h = sht6.readHumidity();
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  h = (isnan(h) || (h < QC_MIN_RH) || (h > QC_MAX_RH)) ? QC_ERR_RH : h;
+                  writer.name("sht6t").value(t, 2);
+                  writer.name("sht6h").value(h, 2);
+                  break;
+
+                case 7 :
+                  t = sht7.readTemperature();
+                  h = sht7.readHumidity();
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  h = (isnan(h) || (h < QC_MIN_RH) || (h > QC_MAX_RH)) ? QC_ERR_RH : h;
+                  writer.name("sht7t").value(t, 2);
+                  writer.name("sht7h").value(h, 2);
+                  break;
+
+                case 8 :
+                  t = sht8.readTemperature();
+                  h = sht8.readHumidity();
+                  t = (isnan(t) || (t < QC_MIN_T)  || (t > QC_MAX_T))  ? QC_ERR_T  : t;
+                  h = (isnan(h) || (h < QC_MIN_RH) || (h > QC_MAX_RH)) ? QC_ERR_RH : h;
+                  writer.name("sht8t").value(t, 2);
+                  writer.name("sht8h").value(h, 2);
+                  break;
+
                 default :
                   Output ("Invalid Sensor ID");
                   break;
