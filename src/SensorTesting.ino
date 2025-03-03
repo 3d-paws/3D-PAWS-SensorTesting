@@ -1,6 +1,6 @@
 PRODUCT_VERSION(1);
 #define COPYRIGHT "Copyright [2024] [University Corporation for Atmospheric Research]"
-#define VERSION_INFO "ICDP_ST-20250124"
+#define VERSION_INFO "ICDP_ST-20250303v1"
 
 /*
  *======================================================================================================================
