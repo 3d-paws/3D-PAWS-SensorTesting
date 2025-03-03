@@ -22,6 +22,8 @@ PRODUCT_VERSION(1);
  *                         Bug fixes
  *          2025-02-13 RJB Bug Fix for SHT31 #4
  *          2025-02-21 RJB Added suport for SHT 5-8
+ *          2025-03-03 RJB Added support to log to Particle if OBS_Interval not 0 but a interval time
+ *                         Added SI1145 support
  *  
  * 
  * Non-Contact Capacitive leaf wetness, Temperature sensor
@@ -60,6 +62,7 @@ PRODUCT_VERSION(1);
 #include <Adafruit_SHT31.h>
 #include <Adafruit_HDC302x.h>
 #include <Adafruit_LPS35HW.h>
+#include <Adafruit_SI1145.h>
 #include <i2cArduino.h>
 #include <LeafSens.h>
 
@@ -88,6 +91,10 @@ PRODUCT_VERSION(1);
  *  Globals
  * ======================================================================================================================
  */
+int OBS_Interval=5;           // Value of 0 equals 1 second observations, no logging to Particle
+                              // Intervals of 1-6, 10, 12, 15, 20, 30 minutes, log to Particle a the minute marks
+                              // Example 5 would log on minutes of 0,5,10,15,20 ... 55
+                              //         20 = 0,20,40
 char msgbuf[MAX_MSGBUF_SIZE]; // Used to hold messages
 char *msgp;                   // Pointer to message text
 char Buffer32Bytes[32];       // General storage
@@ -186,6 +193,20 @@ bool Particle_Publish(char *EventName) {
     Output ("Particle:NotReady");
   }
   return(false);
+}
+
+/* 
+ *=======================================================================================================================
+ * seconds_to_next_obs() - minutes to next observations window
+ * 
+ * Example for 15m obs interval
+ * Time of last obs in ms MOD 900 = Seconds since last period
+ * 900 - Seconds since last period = Seconds to next period
+ * Seconds to next period + current time in MS = next OBS time
+ *=======================================================================================================================
+ */
+int seconds_to_next_obs() {
+  return ((OBS_Interval*60) - (Time.now() % (OBS_Interval*60)));
 }
 
 
@@ -321,7 +342,15 @@ void loop() {
     RTC_UpdateCheck();
 
     // Perform an Observation, Write to SD, and Transmit observation
-    OBS_Do();
+
+    if (OBS_Interval == 0) {
+      OBS_Do();
+    }
+    else if (Time.now() >= Time_of_next_obs) {
+      OBS_Do();
+      // Given overhead of doing and transmitting an obs, when 1m obs just add 60s to current time.
+      Time_of_next_obs = (OBS_Interval == 1) ? (Time.now() + 60) : (Time.now() + seconds_to_next_obs());
+    }
 
     // Request time synchronization from the Cell network - Every 2 Hours
     if ((System.millis() - LastTimeUpdate) > (2*3600*1000)) {

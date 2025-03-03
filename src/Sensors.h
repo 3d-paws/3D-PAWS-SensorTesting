@@ -10,9 +10,9 @@
 #define HIH8000_ADDRESS   0x27
 
 typedef enum {
-  UNKN, bmp, bme, b38, b39, htu, sht, mcp, hdc, lps, hih, tlw, tsm 
+  UNKN, bmp, bme, b38, b39, htu, sht, mcp, hdc, lps, hih, tlw, tsm, si 
 } SENSOR_TYPE;
-const char *sensor_type[] = {"UNKN", "bmp", "bme", "b38", "b39", "htu", "sht", "mcp", "hdc", "lps", "hih", "tlw", "tsm"};
+const char *sensor_type[] = {"UNKN", "bmp", "bme", "b38", "b39", "htu", "sht", "mcp", "hdc", "lps", "hih", "tlw", "tsm", "si"};
 
 typedef enum { 
   OFFLINE,
@@ -84,6 +84,9 @@ CH_SENSOR *chs;
  * 
  * Tinovi Soil Moisture
  * tsm  0x63   only this address
+ * 
+ * Si1145 UV/IR/Visible Light Sensor
+ * si   0x60   only this address
  *=======================================================================================================================
  */
 void mux_sensor_config() {
@@ -113,9 +116,9 @@ void mux_sensor_config() {
 
   // Mux Channel 3
   mux[3].inuse = true;
-  mux[3].sensor[0].type = lps;
+  mux[3].sensor[0].type = si;
   mux[3].sensor[0].id = 1;
-  mux[3].sensor[0].address = 0x5D;
+  mux[3].sensor[0].address = 0x60;
 
   // Mux Channel 4
   mux[4].inuse = true;
@@ -186,6 +189,10 @@ Adafruit_LPS35HW lps2;
 Adafruit_LPS35HW lps3;
 Adafruit_LPS35HW lps4;
 
+Adafruit_SI1145 si1;
+Adafruit_SI1145 si2;
+Adafruit_SI1145 si3;
+Adafruit_SI1145 si4;
 
 LeafSens tlw1;
 LeafSens tlw2;
@@ -947,6 +954,55 @@ void mux_sensor_initialize() {
                   break;
               }
               break;
+
+            // Si1145 UV/IR/Visible Light Sensor
+            case si :
+            switch (chs->id) {
+              case 1 :
+                if (!si1.begin()) { 
+                  Output ("    OFFLINE");
+                }
+                else {
+                  chs->state = ONLINE;
+                  Output ("    ONLINE");
+                }
+                break;
+
+              case 2 :
+                if (!si2.begin()) { 
+                  Output ("    OFFLINE");
+                }
+                else {
+                  chs->state = ONLINE;
+                  Output ("    ONLINE");
+                } 
+                break;
+
+              case 3 :
+                if (!si3.begin()) { 
+                  Output ("    OFFLINE");
+                }
+                else {
+                  chs->state = ONLINE;
+                  Output ("    ONLINE");
+                } 
+                break;
+
+              case 4 :
+                if (!si4.begin()) { 
+                  Output ("    OFFLINE");
+                }
+                else {
+                  chs->state = ONLINE;
+                  Output ("    ONLINE");
+                } 
+                break;
+
+              default :
+                Output ("    Invalid Sensor ID");
+                break;
+            }
+            break;
 
             // Default  
             default :

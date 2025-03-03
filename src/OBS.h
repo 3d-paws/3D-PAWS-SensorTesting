@@ -19,6 +19,9 @@ void OBS_Do() {
   float ec;
   float vwc;
   float w; // wet
+  float si_vis = 0.0;
+  float si_ir = 0.0;
+  float si_uv = 0.0;
 
   // Safty Check for Vaild Time
   if (!Time.isValid()) {
@@ -691,6 +694,51 @@ void OBS_Do() {
               }
               break;
 
+            // Si1145 UV/IR/Visible Light Sensor
+            case si :
+              switch (chs->id) {
+                case 1 :
+                  si_vis = si1.readVisible();
+                  si_ir = si1.readIR();
+                  si_uv = si1.readUV()/100.0;
+                  writer.name("si1v").value(si_vis, 2);
+                  writer.name("si1i").value(si_ir, 2);
+                  writer.name("si1u").value(si_uv, 2);
+                  break;
+
+                case 2 :
+                  si_vis = si2.readVisible();
+                  si_ir = si2.readIR();
+                  si_uv = si2.readUV()/100.0;
+                  writer.name("si2v").value(si_vis, 2);
+                  writer.name("si2i").value(si_ir, 2);
+                  writer.name("si2u").value(si_uv, 2);
+                  break;
+
+                case 3 :
+                  si_vis = si3.readVisible();
+                  si_ir = si3.readIR();
+                  si_uv = si3.readUV()/100.0;
+                  writer.name("si3v").value(si_vis, 2);
+                  writer.name("si3i").value(si_ir, 2);
+                  writer.name("si3u").value(si_uv, 2);
+                  break;
+
+                case 4 :
+                  si_vis = si4.readVisible();
+                  si_ir = si4.readIR();
+                  si_uv = si4.readUV()/100.0;
+                  writer.name("si4v").value(si_vis, 2);
+                  writer.name("si4i").value(si_ir, 2);
+                  writer.name("si4u").value(si_uv, 2);
+                  break;
+
+                default :
+                  Output ("Invalid Sensor ID");
+                  break;
+              }
+              break;
+
             // Default - Sensor tyoe not found
             default :
               break;
@@ -721,25 +769,25 @@ void OBS_Do() {
   SD_LogObservation(msgbuf);
   Serial_write (msgbuf);
 
-/*
-  Time_of_last_obs = Time.now();
+  if (OBS_Interval) { // If not set to 0 (1 second observations) sned to Particle
+    Time_of_last_obs = Time.now();
 
-  Output ("Publish(ST)");
-  if (Particle_Publish((char *) "ST")) { 
-    PostedResults = true;
+    Output ("Publish(ST)");
+    if (Particle_Publish((char *) "ST")) { 
+      PostedResults = true;
 
-    if (SD_exists) {
-      sprintf (Buffer32Bytes, "Publish(OK)[%d]", strlen(msgbuf)+1);
-      Output (Buffer32Bytes);
+      if (SD_exists) {
+        sprintf (Buffer32Bytes, "Publish(OK)[%d]", strlen(msgbuf)+1);
+        Output (Buffer32Bytes);
+      }
+      else {
+        Output ("Publish(OK)-NO SD!!!");
+      }
     }
     else {
-      Output ("Publish(OK)-NO SD!!!");
+      PostedResults = false;
+      Output ("Publish(FAILED)");
     }
   }
-  else {
-    PostedResults = false;
-    Output ("Publish(FAILED)");
-  }
-  */
 }
 
