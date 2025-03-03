@@ -23,6 +23,7 @@ PRODUCT_VERSION(1);
  *          2025-02-13 RJB Bug Fix for SHT31 #4
  *          2025-02-21 RJB Added suport for SHT 5-8
  *          2025-03-03 RJB Added support to log to Particle if OBS_Interval not 0 but a interval time
+ *                         Logs to Partice as Event Type "DS"
  *                         Added SI1145 support
  *  
  * 
