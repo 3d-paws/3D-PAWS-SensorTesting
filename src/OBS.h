@@ -22,6 +22,8 @@ void OBS_Do() {
   float si_vis = 0.0;
   float si_ir = 0.0;
   float si_uv = 0.0;
+  float BatteryPoC = 0.0; // Battery Percent of Charge
+
 
   // Safty Check for Vaild Time
   if (!Time.isValid()) {
@@ -42,6 +44,23 @@ void OBS_Do() {
   writer.beginObject();
   writer.name("at").value(timestamp);
   writer.name("epoch").value(now.unixtime());
+
+#if PLATFORM_ID == PLATFORM_ARGON
+  int BatteryState = 0;
+  WiFiSignal sig = WiFi.RSSI();
+  byte cfr = 0;
+#else
+  int BatteryState = System.batteryState();
+  CellularSignal sig = Cellular.RSSI();
+  byte cfr = pmic.getFault(); // Get Battery Charger Failt Register
+  if (BatteryState>0 && BatteryState<6) {
+    BatteryPoC = System.batteryCharge();
+  }
+#endif
+  writer.name("bcs").value(BatteryState); // Battery Charging State
+  writer.name("bpc").value(BatteryPoC,2); // Battery Percent Charge
+  writer.name("cfr").value(cfr); // Battery Charger Fault Register
+
 
   for (int c=0; c<MUX_CHANNELS; c++) {
     mc = &mux[c];

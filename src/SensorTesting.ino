@@ -1,6 +1,6 @@
-PRODUCT_VERSION(1);
+PRODUCT_VERSION(2);
 #define COPYRIGHT "Copyright [2024] [University Corporation for Atmospheric Research]"
-#define VERSION_INFO "ICDP_ST-20250303v1"
+#define VERSION_INFO "ICDP_ST-20250310v2"
 
 /*
  *======================================================================================================================
@@ -25,6 +25,7 @@ PRODUCT_VERSION(1);
  *          2025-03-03 RJB Added support to log to Particle if OBS_Interval not 0 but a interval time
  *                         Logs to Partice as Event Type "ST"
  *                         Added SI1145 support
+ *          2025-03-10 RJB Added support for reporting battery and charging state
  *  
  * 
  * Non-Contact Capacitive leaf wetness, Temperature sensor
@@ -155,6 +156,15 @@ char SD_obsdir[] = "/OBS";              // Store our obs in this directory. At P
 bool SD_exists = false;                     // Set to true if SD card found at boot
 
 char SD_wifi_file[] = "WIFI.TXT";       // File used to set WiFi configuration
+
+#if PLATFORM_ID == PLATFORM_BORON
+/*
+ * ======================================================================================================================
+ *  Power Management IC (bq24195)
+ * ======================================================================================================================
+ */
+PMIC pmic;
+#endif
 
 /*
  * ======================================================================================================================
