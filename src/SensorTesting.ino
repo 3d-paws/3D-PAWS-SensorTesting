@@ -1,6 +1,6 @@
-PRODUCT_VERSION(2);
-#define COPYRIGHT "Copyright [2024] [University Corporation for Atmospheric Research]"
-#define VERSION_INFO "ICDP_ST-20250310v2"
+PRODUCT_VERSION(3);
+#define COPYRIGHT "Copyright [2025] [University Corporation for Atmospheric Research]"
+#define VERSION_INFO "ICDP_ST-20251215v3"
 
 /*
  *======================================================================================================================
@@ -26,7 +26,13 @@ PRODUCT_VERSION(2);
  *                         Logs to Partice as Event Type "ST"
  *                         Added SI1145 support
  *          2025-03-10 RJB Added support for reporting battery and charging state
- *  
+ * 
+ *          Version 10 Released on 2025-12-15
+ *          2025-12-12 RJB OBS_Interval is now seconds [0 to whatever]. A0 results in 1 second obs.
+ *                         Logging to Particle only occurs when set to 60 or greater seconds.
+ *                         Code clean up
+ *                         WatchDog removed
+ *                         Sensors added
  * 
  * Non-Contact Capacitive leaf wetness, Temperature sensor
  * https://tinovi.com/shop/i2c-non-contact-capacitive-leaf-wetness-temperature/
@@ -49,113 +55,59 @@ PRODUCT_VERSION(2);
  * Adafruit STEMMA Soil Sensor - I2C Capacitive Moisture Sensor
  * https://learn.adafruit.com/adafruit-stemma-soil-sensor-i2c-capacitive-moisture-sensor
  * 
+ * https://wiki.dfrobot.com/SKU_SEN0562_Gravity_I2C_Waterproof_Ambient_Light_Sensor_1_65535lx
+ * https://github.com/claws/BH1750 for include BH1750
+ * I2C address 0x23
+ * Color 	Label Description
+ * Green 	SDA 	I2C Data Input
+ * Yellow SCL 	I2C Clock Input
+ * Blue 	GND 	Power -
+ * Red 	  VCC 	Power +
+ * 
+ * https://learn.adafruit.com/adafruit-stemma-soil-sensor-i2c-capacitive-moisture-sensor
+ * https://github.com/adafruit/Adafruit_Seesaw/tree/master
+ * I2C address 0x36
+ * 
  */
 
-#define W4SC false   // Set true to Wait for Serial Console to be connected
-
-#include <SPI.h>
-#include <Wire.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BMP280.h>
-#include <Adafruit_BME280.h>
-#include <Adafruit_BMP3XX.h>
-#include <Adafruit_HTU21DF.h>
-#include <Adafruit_MCP9808.h>
-#include <Adafruit_SHT31.h>
-#include <Adafruit_HDC302x.h>
-#include <Adafruit_LPS35HW.h>
-#include <Adafruit_SI1145.h>
-#include <i2cArduino.h>
-#include <LeafSens.h>
-
-#include <RTClib.h>
-#include <SdFat.h>
+/* 
+ *=======================================================================================================================
+ * Local Includes
+ *=======================================================================================================================
+ */
+#include "include/qc.h"             // Quality Control Min and Max Sensor Values on Surface of the Earth
+#include "include/support.h"        // Support Functions
+#include "include/output.h"         // Serial and OLED Output Functions
+#include "include/ps.h"             // Particle Support Functions
+#include "include/sdcard.h"         // SD Card
+#include "include/analog.h"         // Read Analog Pins
+#include "include/time.h"           // Time Management
+#include "include/sensors.h"        // I2C Based Sensors
+#include "include/obs.h"            // Do Observation Processing
+#include "include/wind.h"           // Wind Support Functions
+#include "include/main.h"
 
 /*
  * ======================================================================================================================
- *  Loop Timers
- * ======================================================================================================================
+ * Variables and Data Structures 
+ * =======================================================================================================================
  */
-#define DELAY_NO_RTC              1000*60    // Loop delay when we have no valided RTC
-#define CLOUD_CONNECTION_TIMEOUT  90         // Wait for N seconds to connect to the Cell Network
-
-/*
- * ======================================================================================================================
- *  Relay Power Control Pin
- * ======================================================================================================================
- */
-#define REBOOT_PIN        A0  // Toggle power via relay board
-#define HEARTBEAT_PIN     A1  // Connect to PICAXE-8M PIN-C3
-#define MAX_MSGBUF_SIZE 1024
-
-/*
- * ======================================================================================================================
- *  Globals
- * ======================================================================================================================
- */
-int OBS_Interval=5;           // Value of 0 equals 1 second observations, no logging to Particle
-                              // Intervals of 1-6, 10, 12, 15, 20, 30 minutes, log to Particle a the minute marks
-                              // Example 5 would log on minutes of 0,5,10,15,20 ... 55
-                              //         20 = 0,20,40
+char versioninfo[sizeof(VERSION_INFO)];  // allocate enough space including null terminator
 char msgbuf[MAX_MSGBUF_SIZE]; // Used to hold messages
 char *msgp;                   // Pointer to message text
 char Buffer32Bytes[32];       // General storage
 int  LED_PIN = D7;            // Built in LED
-bool TurnLedOff = false;      // Set true in rain gauge interrupt
 bool JustPoweredOn = true;    // Used to clear SystemStatusBits set during power on device discovery
-bool PostedResults;           // How we did in posting Observation and Need to Send Observations
 
+// !!!!! Edit Me !!!!!!!!
+int OBS_Interval=0;           // Values below 60 including 0 will have no logging to Particle
+
+bool TurnLedOff = false;      // Set true in rain gauge interrupt
+
+bool PostedResults;           // How we did in posting Observation and Need to Send Observations
 time32_t Time_of_last_obs = 0;
 time32_t Time_of_next_obs = 0;
-
-int countdown = 1800;         // Exit calibration mode when reaches 0 - protects against burnt out pin or forgotten jumper
 uint64_t LastTimeUpdate = 0;
-uint64_t StartedConnecting = 0;
-bool ParticleConnecting = false;
-bool TakeObservation = true;  // When set we take OBS and transmit it
-bool PowerDown = false;
-
-#if PLATFORM_ID == PLATFORM_BORON
-const char* pinNames[] = {
-    "A0", "A1", "A2", "A3", "A4", "A5",
-    "D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8",
-    "D9", "D10", "D11", "D12", "D13", "D14", "D15",
-    "SDA", "SCL", "TX", "RX", "MISO", "MOSI", "SCK", "SS",
-    "WKP", "VUSB", "Li+"
-};
-#endif
-
-#if PLATFORM_ID == PLATFORM_ARGON
-const char* pinNames[] = {
-    "A0", "A1", "A2", "A3", "A4", "A5",
-    "D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8",
-    "D9", "D10", "D11", "D12", "D13", "D14", "D15", "D16", "D17", "D18", "D19",
-    "SDA", "SCL", "TX", "RX", "MISO", "MOSI", "SCK", "SS",
-    "WKP", "VUSB", "Li+", "EN", "3V3", "GND"
-};
-#endif
-
-/*
- * ======================================================================================================================
- * International Mobile Subscriber Identity
- * ======================================================================================================================
- */
-char imsi[16] = "";
-bool imsi_valid = false;
-time32_t imsi_next_try = 0;
-
-/*
- * ======================================================================================================================
- *  SD Card
- * ======================================================================================================================
- */
-#define SD_ChipSelect D5                // GPIO 10 is Pin 10 on Feather and D5 on Particle Boron Board
-SdFat SD;                               // File system object.
-File SD_fp;
-char SD_obsdir[] = "/OBS";              // Store our obs in this directory. At Power on, it is created if does not exist
-bool SD_exists = false;                     // Set to true if SD card found at boot
-
-char SD_wifi_file[] = "WIFI.TXT";       // File used to set WiFi configuration
 
 #if PLATFORM_ID == PLATFORM_BORON
 /*
@@ -164,73 +116,7 @@ char SD_wifi_file[] = "WIFI.TXT";       // File used to set WiFi configuration
  * ======================================================================================================================
  */
 PMIC pmic;
-#endif
-
-/*
- * ======================================================================================================================
- *  Local Code Includes - Do not change the order of the below 
- * ======================================================================================================================
- */
-#include "QC.h"                   // Quality Control Min and Max Sensor Values on Surface of the Earth
-#include "SF.h"                   // Support Functions
-#include "OP.h"                   // OutPut support for OLED and Serial Console
-#include "TM.h"                   // Time Management
-#include "Sensors.h"              // I2C Based Sensors
-#include "Analog.h"               // Read Analog Pins
-#include "SDC.h"                  // SD Card
-#include "OBS.h"                  // Do Observation Processing
-#include "PS.h"                   // Particle Support Functions
-
-/*
- * ======================================================================================================================
- * Particle_Publish() - Publish to Particle what is in msgbuf
- * ======================================================================================================================
- */
-bool Particle_Publish(char *EventName) {
-  // Calling Particle.publish() when the cloud connection has been turned off will not publish an event. 
-  // This is indicated by the return success code of false. If the cloud connection is turned on and 
-  // trying to connect to the cloud unsuccessfully, Particle.publish() may block for up to 20 seconds 
-  // (normal conditions) to 10 minutes (unusual conditions). Checking Particle.connected() 
-  // before calling Particle.publish() can help prevent this.
-  // if (Cellular.ready() && Particle.connected()) {
-  if (Particle.connected()) {
-    if (Particle.publish(EventName, msgbuf, WITH_ACK)) { // PRIVATE flag is always used even when not specified
-      // Currently, a device can publish at rate of about 1 event/sec, with bursts of up to 4 allowed in 1 second. 
-      delay (1000);
-      return(true);
-    }
-  }
-  else {
-    Output ("Particle:NotReady");
-  }
-  return(false);
-}
-
-/* 
- *=======================================================================================================================
- * seconds_to_next_obs() - minutes to next observations window
- * 
- * Example for 15m obs interval
- * Time of last obs in ms MOD 900 = Seconds since last period
- * 900 - Seconds since last period = Seconds to next period
- * Seconds to next period + current time in MS = next OBS time
- *=======================================================================================================================
- */
-int seconds_to_next_obs() {
-  return ((OBS_Interval*60) - (Time.now() % (OBS_Interval*60)));
-}
-
-
-/*
- * ======================================================================================================================
- * HeartBeat() - 
- * ======================================================================================================================
- */
-void HeartBeat() {
-  digitalWrite(HEARTBEAT_PIN, HIGH);
-  delay(250);
-  digitalWrite(HEARTBEAT_PIN, LOW);
-}
+#endif              
 
 /*
  * ======================================================================================================================
@@ -239,8 +125,9 @@ void HeartBeat() {
  */
 void BackGroundWork() {
   // Anything that needs sampling every second add below. Example Wind Speed and Direction, StreamGauge
-  HeartBeat();  // 250ms
-  delay (750);
+  Wind_TakeReading();
+
+  delay (1000);
   if (TurnLedOff) {     // Turned on by rain gauge interrupt handlers
     digitalWrite(LED_PIN, LOW);
     TurnLedOff = false;
@@ -253,7 +140,7 @@ void BackGroundWork() {
 SYSTEM_MODE(SEMI_AUTOMATIC);
 
 // https://docs.particle.io/cards/firmware/system-thread/system-threading-behavior/
-SYSTEM_THREAD(ENABLED);
+// SYSTEM_THREAD(ENABLED); // Default Behavior as of 6.2.0
 
 /*
  * ======================================================================================================================
@@ -271,12 +158,7 @@ void setup() {
 
   Serial_write(COPYRIGHT);
   Output (VERSION_INFO);
-  delay(4000);
-
-  // WatchDog - By default all pins are LOW when board is first powered on. Setting OUTPUT keeps pin LOW.
-  Output ("SETUP WATCHDOG PINs");  // 
-  pinMode (REBOOT_PIN, OUTPUT);
-  pinMode (HEARTBEAT_PIN, OUTPUT);
+  delay(2000);
 
   // Initialize SD card if we have one.
   SD_initialize();
@@ -301,6 +183,8 @@ void setup() {
   sprintf (msgbuf, "%s=", timestamp);
   Output(msgbuf);
 
+  Wire.begin();
+
   mux_initialize();
   analog_initialize();
 
@@ -314,6 +198,9 @@ void setup() {
   WiFiChangeCheck();
   WiFiPrintCredentials();
 #endif
+
+  // See if as5600 is on the i2c main buss. Not the MUX.
+  as5600_initialize();
 
   // Connect the device to the Cloud. 
   // This will automatically activate the cellular connection and attempt to connect 
@@ -334,6 +221,8 @@ void setup() {
 
   Time_of_next_obs = Time.now() + 60;  // Schedule a obs 60s from now to give network a chance to connect
 
+  Wind_Fill(); // Checks if AS5600 exists else returns right away
+
   Output ("LOOP START");
 }
 
@@ -353,15 +242,8 @@ void loop() {
     RTC_UpdateCheck();
 
     // Perform an Observation, Write to SD, and Transmit observation
-
-    if (OBS_Interval == 0) {
-      OBS_Do();
-    }
-    else if (Time.now() >= Time_of_next_obs) {
-      OBS_Do();
-      // Given overhead of doing and transmitting an obs, when 1m obs just add 60s to current time.
-      Time_of_next_obs = (OBS_Interval == 1) ? (Time.now() + 60) : (Time.now() + seconds_to_next_obs());
-    }
+    OBS_Do();
+    Time_of_next_obs = Time.now() + OBS_Interval;
 
     // Request time synchronization from the Cell network - Every 2 Hours
     if ((System.millis() - LastTimeUpdate) > (2*3600*1000)) {

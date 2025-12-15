@@ -102,16 +102,12 @@ bool Adafruit_HDC302x::sendCommandReadTRH(uint16_t command, double &temp,
     return false;
   }
 
-  uint8_t buffer[6];
-  int retries = 0;
-  const int MAX_RETRIES = 10;
+  // Wait for conversion (tmeas in datasheet table 7.5)
+  delay(20);
 
-  while (!i2c_dev->read(buffer, 6)) {
-    if (++retries >= MAX_RETRIES) {
-      return false; // CRC check failed
-    }
-    delay(1); // Wait and retry if NAK received
-  }
+  // Read results
+  uint8_t buffer[6];
+  i2c_dev->read(buffer, 6);
 
   // Validate CRC for temperature data
   if (calculateCRC8(buffer, 2) != buffer[2]) {
