@@ -16,6 +16,8 @@
 #include "include/main.h"
 #include "include/analog.h"
 #include "include/wind.h"
+#include "include/dfrgas.h"
+#include "include/sensirion_sen66.h"
 #include "include/obs.h"
 
 /*
@@ -49,9 +51,9 @@ bool Particle_Publish(char *EventName) {
  * ======================================================================================================================
  */
 void OBS_Do() {
-  float t;
-  float p;
-  float h;
+  float t = 0.0f;
+  float p = 0.0f;
+  float h = 0.0f;
   double dt = -999.9;
   double dh = -999.9;
   float e25;
@@ -63,6 +65,8 @@ void OBS_Do() {
   float si_uv = 0.0;
   float lux = 0.0;
   uint32_t ltr_uv;
+
+  SEN66_BUCKET sen66_avg;
 
   float BatteryPoC = 0.0; // Battery Percent of Charge
 
@@ -86,6 +90,7 @@ void OBS_Do() {
   writer.beginObject();
   writer.name("at").value(timestamp);
   writer.name("epoch").value(now.unixtime());
+  writer.name("uptime").value(System.millis()/1000);
 
 #if PLATFORM_ID == PLATFORM_ARGON
   int BatteryState = 0;
@@ -976,7 +981,37 @@ void OBS_Do() {
               }
               break;
 
-            // Default - Sensor tyoe not found
+            case dfrg : // DFRobot_MultiGasSensor
+              sprintf (Buffer32Bytes, "dfrg-%s-%d", dfrgas_sp->sensor[c].type, chs->id);
+              writer.name(Buffer32Bytes).value(dfrgas_readAvg(c), 2);
+              break;
+
+            case s66 : // Sensirion sen66 Sensor
+              sen66_readAvg(c, sen66_avg);
+
+              sprintf (Buffer32Bytes, "s66-Pm1p0-%d", chs->id);
+              writer.name(Buffer32Bytes).value(sen66_avg.Pm1p0, 2);
+              sprintf (Buffer32Bytes, "s66-Pm2p5-%d", chs->id);
+              writer.name(Buffer32Bytes).value(sen66_avg.Pm2p5, 2);
+              sprintf (Buffer32Bytes, "s66-Pm4p0-%d", chs->id);
+              writer.name(Buffer32Bytes).value(sen66_avg.Pm4p0, 2);
+              sprintf (Buffer32Bytes, "s66-Pm10p0-%d", chs->id);
+              writer.name(Buffer32Bytes).value(sen66_avg.Pm10p0, 2);
+
+              sprintf (Buffer32Bytes, "s66-h-%d", chs->id);
+              writer.name(Buffer32Bytes).value(sen66_avg.h, 2);
+              sprintf (Buffer32Bytes, "s66-t-%d", chs->id);
+              writer.name(Buffer32Bytes).value(sen66_avg.t, 2);
+              sprintf (Buffer32Bytes, "s66-voc-%d", chs->id);
+              writer.name(Buffer32Bytes).value(sen66_avg.voc, 2);
+              sprintf (Buffer32Bytes, "s66-nox-%d", chs->id);
+              writer.name(Buffer32Bytes).value(sen66_avg.nox, 2);
+
+              sprintf (Buffer32Bytes, "s66-co2-%d", chs->id);
+              writer.name(Buffer32Bytes).value(sen66_avg.co2);
+              break;
+
+            // Default - Sensor type not found
             default :
               break;
           }
@@ -1032,6 +1067,7 @@ void OBS_Do() {
   // Log Observation to SD Card
   SD_LogObservation(msgbuf);
   Serial_write (msgbuf);
+  // Output(timestamp);
 
   if (OBS_Interval>=60) { // Only send to Particle if obs interval is grater than a minute
     Time_of_last_obs = Time.now();

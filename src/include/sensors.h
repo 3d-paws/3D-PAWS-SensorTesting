@@ -3,7 +3,6 @@
  *  sensors.h - I2C Sensor Definations
  * ======================================================================================================================
  */
-// #include <Adafruit_Sensor.h>
 #include <Adafruit_BMP280.h>
 #include <Adafruit_BME280.h>
 #include <Adafruit_BMP3XX.h>
@@ -20,14 +19,17 @@
 #include <LeafSens.h>
 #include <BH1750.h> // DFRobot SEN0562 Ambient Light Sensor
 
+#ifndef SENSORS_H
+#define SENSORS_H
+
 #define MUX_CHANNELS 8
 #define MAX_CHANNEL_SENSORS 10
-#define MUX_ADDR 0x70
+#define MUX_ADDR          0x70
 #define HIH8000_ADDRESS   0x27
 #define DFRL_ADDRESS      0x23
 
 typedef enum {
-  UNKN, bmp, bme, b38, b39, b58, htu, sht3, sht4, mcp, hdc, lps, si, ltr, hih, tlw, tsm, dfrl 
+  UNKN, bmp, bme, b38, b39, b58, htu, sht3, sht4, mcp, hdc, lps, si, ltr, hih, tlw, tsm, dfrl, dfrg, s66
 } SENSOR_TYPE;
 
 typedef enum { 
@@ -53,6 +55,7 @@ extern const char *sensor_type[];
 extern MULTIPLEXER_STR mux[MUX_CHANNELS];
 extern MULTIPLEXER_STR *mc;
 extern CH_SENSOR *chs;
+extern int site_elevation;
 
 /* 
  *=======================================================================================================================
@@ -154,3 +157,5 @@ void mux_sensor_list();
 void mux_sensor_initialize();
 void mux_initialize();
 bool hih8_getTempHumid(float *t, float *h);
+
+#endif

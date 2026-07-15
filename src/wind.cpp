@@ -6,6 +6,8 @@
 #include "include/output.h"
 #include "include/analog.h"
 #include "include/main.h"
+#include "include/dfrgas.h"
+#include "include/sensirion_sen66.h"
 #include "include/wind.h"
 
 /*
@@ -363,6 +365,63 @@ void Wind_Fill() {
         Output(Buffer32Bytes);
       }
       delay (990);  // Substract a little time from 750 for loop execution (This is a guess)
+    }
+  }
+}
+
+/* 
+ *=======================================================================================================================
+ * Fill_WindGas()
+ *=======================================================================================================================
+ */
+void Fill_WindGas() {
+
+  if ((dfrgas_sp->number_found == 0) && (sen66_sp->number_found == 0) && !AS5600_exists) {
+    Output("No Wind, Gas or AQ to Fill");
+    return;
+  }
+  Output("Fill Wind&Gas");
+
+  if (AS5600_exists) {
+    // Clear windspeed counter  
+    anemometer_interrupt_count = 0;
+    anemometer_interrupt_stime = System.millis();
+  
+    // Init default values.
+    wind.gust = 0.0;
+    wind.gust_direction = -1;
+    wind.bucket_idx = 0;
+  
+    for (int i=0; i<WIND_READINGS; i++) {  
+      wind.bucket[i].direction = (int) -999;
+      wind.bucket[i].speed = 0.0;
+    }
+  }
+
+  uint64_t OneSecondFromNow, TimeRemaining;
+
+  for (int i=0; i<60; i++) {// WIND_READINGS & DFRGAS_READINGS both equal 60
+    OneSecondFromNow = System.millis() + 1000;
+
+    if (AS5600_exists) {
+      Wind_TakeReading();
+      float ws = Wind_SpeedAverage();
+      sprintf (Buffer32Bytes, "%02d WD:%3d WS:%d.%02d", 
+        i, Wind_SampleDirection(), (int)ws, (int)(ws*100)%100);
+      Output(Buffer32Bytes);
+    }
+    if (dfrgas_sp->number_found) {
+      dfrgas_TakeReading();
+      Output ("DFRGAS Take Reading");
+    }
+    if (sen66_sp->number_found) {
+      sen66_TakeReading();
+      Output ("SEN66 Take Reading");
+    }
+    
+    TimeRemaining = (OneSecondFromNow - System.millis());
+    if ((TimeRemaining > 0) && (TimeRemaining < 1000)) {
+      delay (TimeRemaining);
     }
   }
 }

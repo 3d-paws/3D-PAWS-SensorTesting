@@ -1,6 +1,6 @@
-PRODUCT_VERSION(3);
-#define COPYRIGHT "Copyright [2025] [University Corporation for Atmospheric Research]"
-#define VERSION_INFO "ICDP_ST-20251215v3"
+PRODUCT_VERSION(5);
+#define COPYRIGHT "Copyright [2026] [University Corporation for Atmospheric Research]"
+#define VERSION_INFO "ICDP_ST-20260715v5"
 
 /*
  *======================================================================================================================
@@ -27,12 +27,20 @@ PRODUCT_VERSION(3);
  *                         Added SI1145 support
  *          2025-03-10 RJB Added support for reporting battery and charging state
  * 
- *          Version 10 Released on 2025-12-15
+ *          Version 3 Released on 2025-12-15
  *          2025-12-12 RJB OBS_Interval is now seconds [0 to whatever]. A0 results in 1 second obs.
  *                         Logging to Particle only occurs when set to 60 or greater seconds.
  *                         Code clean up
  *                         WatchDog removed
  *                         Sensors added
+ *          Version
+ *          2026-06-23 RJB Updated to Device OS 6.4.1
+ *                         Added DFRobot CO Air sensor - 1s samples reporting a 60s moving average
+ *                         Added Sensirion Sen66 Sensor - 1s samples reporting a 60s moving average
+ *                         Added BMP581 and SHT45 Sensors        
+ *                         Spent a lot of time looking at why serial output stopped. 
+ *                           Seems to be tied to the cell modem getting busy and us logging every second.
+ *                           When OBS_Interval is less than 60 we do not connect to Particle
  * 
  * Non-Contact Capacitive leaf wetness, Temperature sensor
  * https://tinovi.com/shop/i2c-non-contact-capacitive-leaf-wetness-temperature/
@@ -68,6 +76,10 @@ PRODUCT_VERSION(3);
  * https://github.com/adafruit/Adafruit_Seesaw/tree/master
  * I2C address 0x36
  * 
+ * Library Modifications
+ *   In DFRobot_MultiGasSensor.h comment out #include "HardwareSerial.h"
+ * 
+ * 
  */
 
 /* 
@@ -85,6 +97,8 @@ PRODUCT_VERSION(3);
 #include "include/sensors.h"        // I2C Based Sensors
 #include "include/obs.h"            // Do Observation Processing
 #include "include/wind.h"           // Wind Support Functions
+#include "include/dfrgas.h"         // DFRobot Gas Sensors - 1 per mux channel supported
+#include "include/sensirion_sen66.h"// Sensirion sen66 Sensor - 1 per mux channel supported
 #include "include/main.h"
 
 /*
@@ -98,10 +112,7 @@ char *msgp;                   // Pointer to message text
 char Buffer32Bytes[32];       // General storage
 int  LED_PIN = D7;            // Built in LED
 bool JustPoweredOn = true;    // Used to clear SystemStatusBits set during power on device discovery
-
-// !!!!! Edit Me !!!!!!!!
-int OBS_Interval=0;           // Values below 60 including 0 will have no logging to Particle
-
+int  OBS_Interval=0;          // Values below 60 including 0 will have no logging to Particle
 bool TurnLedOff = false;      // Set true in rain gauge interrupt
 
 bool PostedResults;           // How we did in posting Observation and Need to Send Observations
@@ -126,6 +137,8 @@ PMIC pmic;
 void BackGroundWork() {
   // Anything that needs sampling every second add below. Example Wind Speed and Direction, StreamGauge
   Wind_TakeReading();
+  dfrgas_TakeReading(); // Goes through all mux channels and takes a reading on the sensor per channel.
+  sen66_TakeReading();  // Goes through all mux channels and takes a reading on the sensor per channel.
 
   delay (1000);
   if (TurnLedOff) {     // Turned on by rain gauge interrupt handlers
@@ -138,9 +151,6 @@ void BackGroundWork() {
 // power-up. If you use AUTOMATIC, you may be unable to connect to the cloud, especially
 // on a 2G/3G device without the battery.
 SYSTEM_MODE(SEMI_AUTOMATIC);
-
-// https://docs.particle.io/cards/firmware/system-thread/system-threading-behavior/
-// SYSTEM_THREAD(ENABLED); // Default Behavior as of 6.2.0
 
 /*
  * ======================================================================================================================
@@ -184,6 +194,8 @@ void setup() {
   Output(msgbuf);
 
   Wire.begin();
+  dfrgas_setup();
+  sen66_setup();   
 
   mux_initialize();
   analog_initialize();
@@ -206,22 +218,23 @@ void setup() {
   // This will automatically activate the cellular connection and attempt to connect 
   // to the Particle cloud if the device is not already connected to the cloud.
   // Upon connection to cloud, time is synced, aka Particle.syncTime()
+  if (OBS_Interval >= 60) {
+    // Note if we call Particle.connect() and are not truely connected to the Cell network, Code blocks in particle call
+    Particle.setDisconnectOptions(CloudDisconnectOptions().graceful(true).timeout(5s));
+    Particle.connect();
 
-  // Note if we call Particle.connect() and are not truely connected to the Cell network, Code blocks in particle call
-  Particle.setDisconnectOptions(CloudDisconnectOptions().graceful(true).timeout(5s));
-  Particle.connect();
-
-  // Setup Remote Function to DoAction, Expects a parameter to be passed from Particle to control what action
-  if (Particle.function("DoAction", Function_DoAction)) {
-    Output ("DoAction:OK");
-  }
-  else {
-    Output ("DoAction:ERR");
+    // Setup Remote Function to DoAction, Expects a parameter to be passed from Particle to control what action
+    if (Particle.function("DoAction", Function_DoAction)) {
+      Output ("DoAction:OK");
+    }
+    else {
+      Output ("DoAction:ERR");
+    }
   }
 
   Time_of_next_obs = Time.now() + 60;  // Schedule a obs 60s from now to give network a chance to connect
 
-  Wind_Fill(); // Checks if AS5600 exists else returns right away
+  Fill_WindGas();
 
   Output ("LOOP START");
 }
@@ -233,11 +246,9 @@ void setup() {
  */
 void loop() {
   BackGroundWork(); // Delays 1 second
-
   // This will be invalid if the RTC was bad at poweron and we have not connected to Cell network
   // Upon connection to cell network system Time is set and this becomes valid
   if (Time.isValid()) { 
- 
     // Set RTC from Cell network time.
     RTC_UpdateCheck();
 

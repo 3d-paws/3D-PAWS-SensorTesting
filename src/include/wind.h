@@ -21,15 +21,6 @@
  *          Wind Direction = Average of the 60 vectors from Direction and Speed.
  *          Wind Gust = Highest 3 consecutive samples from the 60 samples. The 3 samples are then averaged.
  *          Wind Gust Direction = Average of the 3 Vectors from the Wind Gust samples.
- * 
- * Distance Sensors
- * The 5-meter sensors (MB7360, MB7369, MB7380, and MB7389) use a scale factor of (Vcc/5120) per 1-mm.
- * Particle 12bit resolution (0-4095),  Sensor has a resolution of 0 - 5119mm,  Each unit of the 0-4095 resolution is 1.25mm
- * Feather has 10bit resolution (0-1023), Sensor has a resolution of 0 - 5119mm, Each unit of the 0-1023 resolution is 5mm
- * 
- * The 10-meter sensors (MB7363, MB7366, MB7383, and MB7386) use a scale factor of (Vcc/10240) per 1-mm.
- * Particle 12bit resolution (0-4095), Sensor has a resolution of 0 - 10239mm, Each unit of the 0-4095 resolution is 2.5mm
- * Feather has 10bit resolution (0-1023), Sensor has a resolution of 0 - 10239mm, Each unit of the 0-1023 resolution is 10mm
  * ======================================================================================================================
  */
 #define ANEMOMETER_IRQ_PIN  A2
@@ -66,5 +57,5 @@ float Wind_Gust();
 int Wind_GustDirection();
 void Wind_GustUpdate();
 void Wind_TakeReading();
-void Wind_Initialize();
 void Wind_Fill();
+void Fill_WindGas();

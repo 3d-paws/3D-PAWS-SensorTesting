@@ -7,6 +7,8 @@
 #include "include/output.h"
 #include "include/support.h"
 #include "include/main.h"
+#include "include/dfrgas.h"
+#include "include/sensirion_sen66.h"
 #include "include/sensors.h"
 
 /*
@@ -15,10 +17,13 @@
  * =======================================================================================================================
  */
 const char *sensor_state[] = {"OFFLINE", "ONLINE"};
-const char *sensor_type[] = {"UNKN", "bmp", "bme", "b38", "b39", "b58", "htu", "sht3", "sht4", "mcp", "hdc", "lps", "si", "ltr", "hih", "tlw", "tsm", "dfrlx"};
+const char *sensor_type[] = {"UNKN", "bmp", "bme", "b38", "b39", "b58", "htu", "sht3", "sht4", "mcp", "hdc", "lps", "si", "ltr", "hih", "tlw", "tsm", "dfrlx", "dfrg", "s66"};
 MULTIPLEXER_STR mux[MUX_CHANNELS];
 MULTIPLEXER_STR *mc;
 CH_SENSOR *chs;
+
+int site_elevation=0;
+
 
 /* 
  *=======================================================================================================================
@@ -84,16 +89,60 @@ CH_SENSOR *chs;
  * 
  * DFRobot SEN0562 Ambient Light Sensor 1-65535lx / BH1750
  * dfrl 0x23   only this address
+ * 
+ * DFRobot Multi Gas Sensor
+ * dfrg 0x?? all sensors must have same i2c addess only one sensor per mux channel (0x74 or 0x75 are ideal)
+ * 
+ *  Group   A0 A1 DIP 00    01    10    11
+ *  1               0x60  0x61  0x62  0x63
+ *  2               0x64  0x65  0x66  0x67
+ *  3               0x68  0x69  0x6A  0x6B
+ *  4               0x6C  0x6D  0x6E  0x6F
+ *  5               0x70  0x71  0x72  0x73
+ *  6               0x74  0x75  0x76  0x77 (Default group 6, Default address 0x77 ) to me it looks like 0x74 is the default
+ *  7               0x78  0x79  0x7A  0x7B
+ *  8               0x7C  0x7D  0x7E  0x7F
+ *
+ * i2c address select, default to 0x77, A1 and A0 are grouped into 4 I2C addresses.
+ *  | A0 | A1 |
+ *  | 0  | 0  |    0x74
+ *  | 0  | 1  |    0x75
+ *  | 1  | 0  |    0x76
+ *  | 1  | 1  |    0x77  
+ *
+ * 
+ * Sensirion sen66 Sensor
+ * s66  0x6B only this address
  *=======================================================================================================================
  */
 void mux_sensor_config() {
+
+// !!!!! Edit Me !!!!!!!!
+  OBS_Interval=0;           // Values below 60 including 0 will have no logging to Particle
+                            // A value of 0 means we log once a second.
+                            // Set to 60 or greater to log to Particle.
+
+  // It is expected you will delete the below and put into place what sensors you are using.
+
+  // The altitude setting is here because the SEN66’s gas-related measurements, especially CO2, are affected by 
+  // air pressure and altitude. Setting altitude lets the sensor or its firmware compensate for the lower 
+  // atmospheric pressure at your location so the readings stay more accurate.
+
+  site_elevation=1546;  // your site elevation in meters (Erie, CO)
+
+
   // Mux Channel 0
   mux[0].inuse = true;
   // mcp1
   mux[0].sensor[0].type = mcp;
   mux[0].sensor[0].id = 1;
   mux[0].sensor[0].address = 0x18;
-  
+
+  // DF Robot Gas
+  mux[0].sensor[1].type = dfrg;
+  mux[0].sensor[1].id = 1;
+  mux[0].sensor[1].address = 0x74;
+
   // Mux Channel 1
   mux[1].inuse = true;
   // b391
@@ -109,9 +158,17 @@ void mux_sensor_config() {
   mux[1].sensor[2].id = 1;
   mux[1].sensor[2].address = 0x53;
 
+  // SEN66
+  mux[1].sensor[0].type = s66;
+  mux[1].sensor[0].id = 1;
+  mux[1].sensor[0].address = 0x6B;
+
+  mux[1].sensor[1].type = hdc;
+  mux[1].sensor[1].id = 1;
+  mux[1].sensor[1].address = 0x46;
+
   // Mux Channel 2
   mux[2].inuse = true;
-
   mux[2].sensor[0].type = hdc;
   mux[2].sensor[0].id = 1;
   mux[2].sensor[0].address = 0x46;
@@ -122,14 +179,17 @@ void mux_sensor_config() {
 
   // Mux Channel 3
   mux[3].inuse = true;
+  mux[3].sensor[0].type = hdc;
+  mux[3].sensor[0].id = 3;
+  mux[3].sensor[0].address = 0x47;
 
-  mux[3].sensor[0].type = si;
-  mux[3].sensor[0].id = 1;
-  mux[3].sensor[0].address = 0x60;
-  // DFRL
-  mux[3].sensor[1].type = dfrl;
+  mux[3].sensor[1].type = si;
   mux[3].sensor[1].id = 1;
-  mux[3].sensor[1].address = 0x23;
+  mux[3].sensor[1].address = 0x60;
+
+  mux[3].sensor[2].type = dfrl;
+  mux[3].sensor[2].id = 1;
+  mux[3].sensor[2].address = 0x23;
 
   // Mux Channel 4
   mux[4].inuse = true;
@@ -246,10 +306,10 @@ BH1750 dfrl4;
  */
 void mux_channel_set(uint8_t i) {
   if (i > 7) return;
-/*
-  sprintf (Buffer32Bytes, "MUX:CHANNEL:%d SET", i);
-  Output (Buffer32Bytes);
-*/
+
+  // sprintf (Buffer32Bytes, "MUX:CHANNEL:%d SET", i);
+  // Output (Buffer32Bytes);
+
   Wire.beginTransmission(MUX_ADDR);
   Wire.write(1 << i);
   Wire.endTransmission();  
@@ -710,6 +770,7 @@ void dfrl_init(BH1750 &dfrl, CH_SENSOR *chs) {
   }
 }
 
+
 /* 
  *=======================================================================================================================
  * mux_sensor_initialize() - 
@@ -726,9 +787,9 @@ void mux_sensor_initialize() {
         chs = &mc->sensor[s];
 
         if (chs->type != UNKN) {
-          sprintf (Buffer32Bytes, "CH:%d S:%d,%s%d,0x%02x", 
+          sprintf (msgbuf, "CH:%d S:%d,%s%d,0x%02x", 
           c, s, sensor_type[chs->type], chs->id, chs->address);
-          Output (Buffer32Bytes);
+          Output (msgbuf);
 
           // Initialize sensor mapping to appropriate substantiation
           switch (chs->type) {
@@ -908,6 +969,14 @@ void mux_sensor_initialize() {
                 case 4 : dfrl_init(dfrl4, chs); break;
                 default : Output ("  Invalid Sensor ID"); break;
               }
+              break;
+
+            case dfrg : // DFRobot MultiGasSensor - Same i2c address must be used across all mux channels. One sensor per channel.
+              dfrgas_init(dfrgas, chs, c);
+              break;
+
+            case s66 : // Sensirion sen66 Sensor - Same i2c address must be used across all mux channels. One sensor per channel.
+              sen66_init(sen66, chs, c);
               break;
 
             default : // Default  
