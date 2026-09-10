@@ -35,12 +35,13 @@ void dfrgas_TakeReading() {
     for (int c=0; c<MUX_CHANNELS; c++) {
       mc = &mux[c];
       if (mc->inuse) {
-        mux_channel_set(c); // Set mux channel
-
         // Loop through sensors on channel
         for (int s=0; s<MAX_CHANNEL_SENSORS; s++) {
           chs = &mc->sensor[s];
           if ((chs->type == dfrg) && (chs->state == ONLINE)) {
+
+            mux_channel_set(c); // Set mux channel
+
             dfrgas_sp->sensor[c].bucket[dfrgas_sp->bucket_idx] = dfrgas->readGasConcentrationPPM();
           }
         }

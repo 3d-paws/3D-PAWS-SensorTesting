@@ -47,12 +47,13 @@ void sen66_TakeReading() {
     for (int c=0; c<MUX_CHANNELS; c++) {
       mc = &mux[c];
       if (mc->inuse) {
-        mux_channel_set(c); // Set mux channel
-
         // Loop through sensors on channel
         for (int s=0; s<MAX_CHANNEL_SENSORS; s++) {
           chs = &mc->sensor[s];
           if ((chs->type == s66) && (chs->state == ONLINE)) {
+
+            mux_channel_set(c); // Set mux channel
+
             if (sen66->readMeasuredValues(Pm1p0, Pm2p5, Pm4p0, Pm10p0, h, t, voc, nox, co2) == NO_ERROR) {
               sen66_sp->sensor[c].bucket[sen66_sp->bucket_idx].Pm1p0 = Pm1p0;
               sen66_sp->sensor[c].bucket[sen66_sp->bucket_idx].Pm2p5 = Pm2p5;

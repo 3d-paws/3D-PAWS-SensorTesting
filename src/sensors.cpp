@@ -8,6 +8,8 @@
 #include "include/support.h"
 #include "include/main.h"
 #include "include/dfrgas.h"
+#include "include/dfrwrg.h"
+#include "include/sensors.h"
 #include "include/sensirion_sen66.h"
 #include "include/sensors.h"
 
@@ -17,13 +19,12 @@
  * =======================================================================================================================
  */
 const char *sensor_state[] = {"OFFLINE", "ONLINE"};
-const char *sensor_type[] = {"UNKN", "bmp", "bme", "b38", "b39", "b58", "htu", "sht3", "sht4", "mcp", "hdc", "lps", "si", "ltr", "hih", "tlw", "tsm", "dfrlx", "dfrg", "s66"};
+const char *sensor_type[] = {"UNKN", "bmp", "bme", "b38", "b39", "b58", "htu", "sht3", "sht4", "mcp", "hdc", "lps", "si", "ltr", "hih", "tlw", "tsm", "dfrlx", "dfrg", "s66", "wrg"};
 MULTIPLEXER_STR mux[MUX_CHANNELS];
 MULTIPLEXER_STR *mc;
 CH_SENSOR *chs;
 
 int site_elevation=0;
-
 
 /* 
  *=======================================================================================================================
@@ -87,7 +88,7 @@ int site_elevation=0;
  * Tinovi Soil Moisture
  * tsm  0x63   only this address
  * 
- * DFRobot SEN0562 Ambient Light Sensor 1-65535lx / BH1750
+ * DFRobot SEN0562 Ambient Light Sensor 1-65535lx / BH1750 (via BH1750.h)
  * dfrl 0x23   only this address
  * 
  * DFRobot Multi Gas Sensor
@@ -95,7 +96,7 @@ int site_elevation=0;
  * 
  *  Group   A0 A1 DIP 00    01    10    11
  *  1               0x60  0x61  0x62  0x63
- *  2               0x64  0x65  0x66  0x67
+ *  2               0x64  0x65  0x66  0x67 -> DFRobot Gravity: HX711 Weight Sensor
  *  3               0x68  0x69  0x6A  0x6B
  *  4               0x6C  0x6D  0x6E  0x6F
  *  5               0x70  0x71  0x72  0x73
@@ -113,14 +114,29 @@ int site_elevation=0;
  * 
  * Sensirion sen66 Sensor
  * s66  0x6B only this address
+ * 
+
+ * DFRobot Gravity: HX711 Weight Sensor
+ * wrg 0x?? all sensors must have same i2c addess only one sensor per mux channel
+ * 
+ * i2c address select, default to 0x64, A1 and A0 are grouped into 4 I2C addresses.
+ *  | A0 | A1 |
+ *  | 0  | 0  |    0x64
+ *  | 0  | 1  |    0x65
+ *  | 1  | 0  |    0x66
+ *  | 1  | 1  |    0x67  
+ * 
+ * Tag name wrg[1-8] = weighing rain gauge [id]
+ * 
  *=======================================================================================================================
  */
 void mux_sensor_config() {
 
 // !!!!! Edit Me !!!!!!!!
-  OBS_Interval=0;           // Values below 60 including 0 will have no logging to Particle
+  OBS_Interval=60;          // Values below 60 including 0 will have no logging to Particle
                             // A value of 0 means we log once a second.
                             // Set to 60 or greater to log to Particle.
+  PublishToParticle=false;  // Final say if we Publish to Particle
 
   // It is expected you will delete the below and put into place what sensors you are using.
 
@@ -139,9 +155,9 @@ void mux_sensor_config() {
   mux[0].sensor[0].address = 0x18;
 
   // DF Robot Gas
-  mux[0].sensor[1].type = dfrg;
+  mux[0].sensor[1].type = wrg;
   mux[0].sensor[1].id = 1;
-  mux[0].sensor[1].address = 0x74;
+  mux[0].sensor[1].address = 0x64;
 
   // Mux Channel 1
   mux[1].inuse = true;
@@ -157,6 +173,10 @@ void mux_sensor_config() {
   mux[1].sensor[2].type = ltr;
   mux[1].sensor[2].id = 1;
   mux[1].sensor[2].address = 0x53;
+  // WRG1
+  mux[1].sensor[3].type = wrg;
+  mux[1].sensor[3].id = 1;
+  mux[1].sensor[3].address = 0x64;
 
   // SEN66
   mux[1].sensor[0].type = s66;
@@ -757,7 +777,9 @@ void tsm_init(SVCS3 &tsm, CH_SENSOR *chs) {
 
 /* 
  *=======================================================================================================================
- * dfrl_init() - initialize DFRobot SEN0562 Ambient Light Sensor 1-65535lx - BH1750
+ * dfrl_init() - initialize DFRobot SEN0562 Ambient Light Sensor 1-65535lx - BH1750 (via BH1750.h)
+ * DFRobot claims a measurement range of 1 to 65,535 lx with 1.2 lx accuracy and IP68 waterproofing.
+ * https://www.dfrobot.com/product-2664.html
  *=======================================================================================================================
  */
 void dfrl_init(BH1750 &dfrl, CH_SENSOR *chs) {
@@ -961,7 +983,7 @@ void mux_sensor_initialize() {
               }
               break;
 
-            case dfrl : // DFRobot SEN0562 Ambient Light Sensor 1-65535lx BH1750
+            case dfrl : // DFRobot SEN0562 Ambient Light Sensor 1-65535lx BH1750 (via BH1750.h)
               switch (chs->id) {
                 case 1 : dfrl_init(dfrl1, chs); break;
                 case 2 : dfrl_init(dfrl2, chs); break;
@@ -973,6 +995,10 @@ void mux_sensor_initialize() {
 
             case dfrg : // DFRobot MultiGasSensor - Same i2c address must be used across all mux channels. One sensor per channel.
               dfrgas_init(dfrgas, chs, c);
+              break;
+
+            case wrg : // DFRobot Gravity HX711 Weight Sensor - Weighing Rain Gauge - Same i2c address must be used across all mux channels. One sensor per channel.
+              dfrwrg_init(dfrwrg, chs, c);
               break;
 
             case s66 : // Sensirion sen66 Sensor - Same i2c address must be used across all mux channels. One sensor per channel.

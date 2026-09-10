@@ -29,7 +29,7 @@
 #define DFRL_ADDRESS      0x23
 
 typedef enum {
-  UNKN, bmp, bme, b38, b39, b58, htu, sht3, sht4, mcp, hdc, lps, si, ltr, hih, tlw, tsm, dfrl, dfrg, s66
+  UNKN, bmp, bme, b38, b39, b58, htu, sht3, sht4, mcp, hdc, lps, si, ltr, hih, tlw, tsm, dfrl, dfrg, s66, wrg
 } SENSOR_TYPE;
 
 typedef enum { 

@@ -28,6 +28,7 @@ extern char Buffer32Bytes[32];
 extern int LED_PIN;
 extern bool JustPoweredOn;
 extern int OBS_Interval;
+extern bool PublishToParticle;
 extern bool TurnLedOff;
 extern bool PostedResults;
 extern time32_t Time_of_last_obs;

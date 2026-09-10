@@ -17,6 +17,7 @@
 #include "include/analog.h"
 #include "include/wind.h"
 #include "include/dfrgas.h"
+#include "include/dfrwrg.h"
 #include "include/sensirion_sen66.h"
 #include "include/obs.h"
 
@@ -986,6 +987,11 @@ void OBS_Do() {
               writer.name(Buffer32Bytes).value(dfrgas_readAvg(c), 2);
               break;
 
+            case wrg : // DFRobot Gravity: HX711 Weight Sensor - Weighing Rain Gauge
+              sprintf (Buffer32Bytes, "wrg-%d", chs->id);
+              writer.name(Buffer32Bytes).value(dfrwrg_read(c), 2);
+              break;
+
             case s66 : // Sensirion sen66 Sensor
               sen66_readAvg(c, sen66_avg);
 
@@ -1069,7 +1075,7 @@ void OBS_Do() {
   Serial_write (msgbuf);
   // Output(timestamp);
 
-  if (OBS_Interval>=60) { // Only send to Particle if obs interval is grater than a minute
+  if ((OBS_Interval>=60) && PublishToParticle){ // Only send to Particle if obs interval is grater than a minute
     Time_of_last_obs = Time.now();
 
     Output ("Publish(ST)");
