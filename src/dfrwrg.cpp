@@ -5,6 +5,7 @@
  */
 #include "include/output.h"
 #include "include/analog.h"
+#include "include/support.h"
 #include "include/main.h"
 #include "include/sensors.h"
 #include "include/dfrwrg.h"
@@ -18,7 +19,7 @@ DFRobot_HX711_I2C *dfrwrg = nullptr;
 
  /*
  * ======================================================================================================================
- *  DFRobot GAS Sensor
+ *  DFRobot Weight Sensor
  * ======================================================================================================================
  */
 DFRGRAV_SENSORS dfrwrg_sensors;
@@ -40,15 +41,48 @@ float gramsToMillimeters(float waterWeight_g)
 
 /* 
  *=======================================================================================================================
+ * dfrwrg_Median()
+ *=======================================================================================================================
+ */
+float dfrwrg_Median(int c) {
+  float buckets[WRG_READINGS];
+
+  // Make it non distructive to the array
+  for (int i=0; i<WRG_READINGS; i++) {
+    buckets[i] = dfrwrg_sp->sensor[c].bucket[i];
+  }
+
+  mysortf(buckets, WRG_READINGS);
+
+  const int mid = WRG_READINGS / 2; // const says that mid is assigned once and must not be changed afterward
+
+  if ((WRG_READINGS & 1) != 0) {
+    // Odd count: one exact middle value.
+    return (buckets[mid]);
+  }
+
+  // Even count: mean of the two central values.
+  return (buckets[mid - 1] + buckets[mid]) * 0.5f; // aka divide by 2
+}
+
+/* 
+ *=======================================================================================================================
  * dfrwrg_read - return rain amount accumulated since last called.
  *=======================================================================================================================
  */
 float dfrwrg_read(int mux_channel) {
-  float reading = dfrwrg->readWeight();
+  float reading = dfrwrg->readWeight(); 
 
   if (reading > dfrwrg_sp->sensor[mux_channel].baseline_sample) {
+    float delta = reading - dfrwrg_sp->sensor[mux_channel].baseline_sample;
+    float median = dfrwrg_Median(mux_channel);
+
+    if ((delta <= 0.5) && (median <= 0.15)) {  // for the last 60 samples we have been collecting flutter values from the sensor
+      delta = 0.0;
+    }
+  
     // Add what we collected to amounts from prior tips since last report
-    dfrwrg_sp->sensor[mux_channel].rain_slr += (reading - dfrwrg_sp->sensor[mux_channel].baseline_sample);
+    dfrwrg_sp->sensor[mux_channel].rain_slr += delta;
   }
 
   float rain = dfrwrg_sp->sensor[mux_channel].rain_slr; // rain to be reported
@@ -57,6 +91,10 @@ float dfrwrg_read(int mux_channel) {
   dfrwrg_sp->sensor[mux_channel].baseline_sample = reading;  // baseline is now what ever the sensor is reading.
   dfrwrg_sp->sensor[mux_channel].last_sample = reading;
   dfrwrg_sp->sensor[mux_channel].rain_slr = 0;
+  // Invalidate the bucket history since we have a new baseline
+  for (int i=0; i<WRG_READINGS; i++) {
+    dfrwrg_sp->sensor[mux_channel].bucket[i] = 0.0;
+  }
 
   return (rain);
 }
@@ -83,6 +121,8 @@ float dfrwrg_read(int mux_channel) {
  */
 void dfrwrg_TipCheck() {
 
+  // We assume when we initialize the rain that is in the bucket has already been counted. From a past observation
+
   if (!dfrwrg_sp->number_found) {
     return;
   }
@@ -100,6 +140,8 @@ void dfrwrg_TipCheck() {
         mux_channel_set(c); // Set mux channel
 
         float reading = dfrwrg->readWeight();
+        dfrwrg_sp->sensor[c].bucket[dfrwrg_sp->bucket_idx] = reading;
+
         if (reading < WRG_MIN_G || reading > WRG_MAX_G) {
           // Log warning; skip this sample
           continue;
@@ -108,11 +150,9 @@ void dfrwrg_TipCheck() {
         float last = dfrwrg_sp->sensor[c].last_sample;
         float baseline = dfrwrg_sp->sensor[c].baseline_sample;
         float delta = reading - last;
+        dfrwrg_sp->sensor[c].bucket[dfrwrg_sp->bucket_idx] = reading - baseline;
 
-        // so if I add a weight on that is 100g, but it take 2 readings for it to settle
-        // 1st = 87 and 2nd = 13.  The is change from the last reading is seen as a tip
-
-        if (delta <= -WRG_TIP_DROP_G) {  // Delta can be negative, if negative by more than -10 g we tipped
+        if (delta <= -WRG_TIP_DROP_G) {  // Delta can be negative, if negative by more than -100 g we tipped
       
           float old_slr = dfrwrg_sp->sensor[c].rain_slr; // since last report
           float added = 0.0f;
@@ -130,14 +170,56 @@ void dfrwrg_TipCheck() {
           dfrwrg_sp->sensor[c].baseline_sample = reading;
           dfrwrg_sp->sensor[c].last_sample = reading;
 
-        } else if (delta >= WRG_NOISE_FLOOR_G) { // aka greather than .05 g
+          // Invalidate the bucket history since we have a new baseline
+          for (int i=0; i<WRG_READINGS; i++) {
+            dfrwrg_sp->sensor[c].bucket[i] = 0.0;
+          }
+        } else if (delta >= WRG_NOISE_FLOOR_G) { // aka greater than .05 g
             // Real weight increase
             sprintf(msgbuf, "WRG_EVENT INC ch=%d delta=%.2f reading=%.2f bl=%.02f", c, delta, reading, baseline);
             Output(msgbuf);
             dfrwrg_sp->sensor[c].last_sample = reading;
         }
       }
+      // All sensors share the same index counter
+      ++dfrwrg_sp->bucket_idx;
+      dfrwrg_sp->bucket_idx = (dfrwrg_sp->bucket_idx) % WRG_READINGS; // Advance bucket index for next reading
     }
+  }
+}
+
+/* 
+ *=======================================================================================================================
+ * dfrwrg_TakeReading() - take 1 sample - used for filling the buckets during initialization.
+ *                        Function dfrwrg_TipCheck() is used after to feed the buckets.
+ *=======================================================================================================================
+ */
+void dfrwrg_TakeReading() { 
+  if (dfrwrg_sp->number_found) {
+    for (int c=0; c<MUX_CHANNELS; c++) {
+      mc = &mux[c];
+      if (mc->inuse) {
+        // Loop through sensors on channel
+        for (int s=0; s<MAX_CHANNEL_SENSORS; s++) {
+          chs = &mc->sensor[s];
+          if ((chs->type == wrg) && (chs->state == ONLINE)) {
+
+            mux_channel_set(c); // Set mux channel
+
+            float reading = dfrwrg->readWeight();
+            if (reading < WRG_MIN_G || reading > WRG_MAX_G) {
+              dfrwrg_sp->sensor[c].bucket[dfrwrg_sp->bucket_idx] = 0.0; // bad reading so use 0
+            }
+            else {
+              dfrwrg_sp->sensor[c].bucket[dfrwrg_sp->bucket_idx] = reading - dfrwrg_sp->sensor[c].baseline_sample;
+            }
+          }
+        }
+      }
+    }
+    // All sensors share the same index counter
+    ++dfrwrg_sp->bucket_idx;
+    dfrwrg_sp->bucket_idx = (dfrwrg_sp->bucket_idx) % WRG_READINGS; // Advance bucket index for next reading
   }
 }
 
@@ -150,6 +232,7 @@ void dfrwrg_setup() {
   // set up the bucket structure to capture sensors
   dfrwrg_sp = &dfrwrg_sensors;
   dfrwrg_sp->number_found = 0;
+  dfrwrg_sp->bucket_idx = 0; // if multiple wrg's that all use the same bucket index
 }   
 
 /* 

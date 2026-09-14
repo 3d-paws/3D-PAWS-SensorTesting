@@ -1,6 +1,6 @@
-PRODUCT_VERSION(5);
+PRODUCT_VERSION(6);
 #define COPYRIGHT "Copyright [2026] [University Corporation for Atmospheric Research]"
-#define VERSION_INFO "ICDP_ST-20260715v5"
+#define VERSION_INFO "ICDP_ST-20260910v6"
 
 /*
  *======================================================================================================================
@@ -41,7 +41,7 @@ PRODUCT_VERSION(5);
  *                         Spent a lot of time looking at why serial output stopped. 
  *                           Seems to be tied to the cell modem getting busy and us logging every second.
  *                           When OBS_Interval is less than 60 we do not connect to Particle
- *          2026-08=01 RJB Added Weighing Rain Gauge support
+ *          2026-09-10 RJB Added Weighing Rain Gauge support
  *                         When scanning the mux channels from background(), the functions called were modified when thay
  *                         call mux_channel_set(c);  It only does this if a sensor is on that channel.
  * 
@@ -241,7 +241,7 @@ void setup() {
 
   Time_of_next_obs = Time.now() + 60;  // Schedule a obs 60s from now to give network a chance to connect
 
-  Fill_WindGas();
+  Fill_Samples();
 
   Output ("LOOP START");
 }

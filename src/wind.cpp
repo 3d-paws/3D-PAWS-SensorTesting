@@ -7,6 +7,7 @@
 #include "include/analog.h"
 #include "include/main.h"
 #include "include/dfrgas.h"
+#include "include/dfrwrg.h"
 #include "include/sensirion_sen66.h"
 #include "include/wind.h"
 
@@ -371,16 +372,17 @@ void Wind_Fill() {
 
 /* 
  *=======================================================================================================================
- * Fill_WindGas()
+ * Fill_Samples()
  *=======================================================================================================================
  */
-void Fill_WindGas() {
+void Fill_Samples() {
 
-  if ((dfrgas_sp->number_found == 0) && (sen66_sp->number_found == 0) && !AS5600_exists) {
-    Output("No Wind, Gas or AQ to Fill");
+  if ((dfrgas_sp->number_found == 0) && (sen66_sp->number_found == 0) && 
+      (dfrwrg_sp->number_found == 0) && !AS5600_exists) {
+    Output("No Wind, Gas, WRG, or AQ to Fill");
     return;
   }
-  Output("Fill Wind&Gas");
+  Output("Taking 60 samples");
 
   if (AS5600_exists) {
     // Clear windspeed counter  
@@ -417,6 +419,10 @@ void Fill_WindGas() {
     if (sen66_sp->number_found) {
       sen66_TakeReading();
       Output ("SEN66 Take Reading");
+    }
+    if (dfrwrg_sp->number_found) {
+      dfrwrg_TipCheck(); // dfrwrg_TakeReading();
+      Output ("WRG Take Reading");
     }
     
     TimeRemaining = (OneSecondFromNow - System.millis());

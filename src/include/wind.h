@@ -58,4 +58,4 @@ int Wind_GustDirection();
 void Wind_GustUpdate();
 void Wind_TakeReading();
 void Wind_Fill();
-void Fill_WindGas();
+void Fill_Samples();

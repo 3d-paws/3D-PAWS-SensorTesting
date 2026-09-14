@@ -9,6 +9,7 @@
 bool I2C_Device_Exist(byte address);
 void Blink(int count, int between);
 void mysort(unsigned int a[], unsigned int n);
+void mysortf(float a[], float n);
 
 #if PLATFORM_ID == PLATFORM_ARGON
 void WiFiChangeCheck();

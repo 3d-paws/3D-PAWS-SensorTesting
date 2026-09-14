@@ -78,6 +78,7 @@
 #include <DFRobot_HX711_I2C.h>
 #include "include/sensors.h"
 
+#define WRG_READINGS          60        // Maintain 60 1 second samples
 #define WRG_TIP_DROP_G        100.0f    // Minimum drop to consider a tip
 #define WRG_NOISE_FLOOR_G     0.5f      // Minimum change to treat as real weight change
 #define WRG_MIN_G             0.0f      // Minimum sanity check
@@ -92,11 +93,13 @@ typedef struct {
   float last_sample;
   float rain_slr; // since last reported
   float calibration;
+  float bucket[WRG_READINGS];
 } DFRGRAV_SENSOR;
 
 typedef struct {
   DFRGRAV_SENSOR sensor[DFRWRG_MUX_CHANNELS];
   int number_found;
+  int bucket_idx;
 } DFRGRAV_SENSORS;
 
 // Extern variables
@@ -110,3 +113,5 @@ void dfrwrg_setup();
 void dfrwrg_init(DFRobot_HX711_I2C *&dfrwrg, CH_SENSOR *chs, int mux_channel);
 void dfrwrg_TipCheck();
 float dfrwrg_read(int mux_channel);
+float dfrwrg_Median(int c);
+void dfrwrg_TakeReading();

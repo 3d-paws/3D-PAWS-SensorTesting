@@ -8,9 +8,9 @@ void BackGroundWork();
 void setup();
 void loop();
 #line 1 "/Users/rjbubon/Documents/Particle/3D-PAWS-SensorTesting/src/SensorTesting.ino"
-PRODUCT_VERSION(4);
+PRODUCT_VERSION(6);
 #define COPYRIGHT "Copyright [2026] [University Corporation for Atmospheric Research]"
-#define VERSION_INFO "ICDP_ST-20260623v4"
+#define VERSION_INFO "ICDP_ST-20260910v6"
 
 /*
  *======================================================================================================================
@@ -51,6 +51,9 @@ PRODUCT_VERSION(4);
  *                         Spent a lot of time looking at why serial output stopped. 
  *                           Seems to be tied to the cell modem getting busy and us logging every second.
  *                           When OBS_Interval is less than 60 we do not connect to Particle
+ *          2026-09-10 RJB Added Weighing Rain Gauge support
+ *                         When scanning the mux channels from background(), the functions called were modified when thay
+ *                         call mux_channel_set(c);  It only does this if a sensor is on that channel.
  * 
  * Non-Contact Capacitive leaf wetness, Temperature sensor
  * https://tinovi.com/shop/i2c-non-contact-capacitive-leaf-wetness-temperature/
@@ -108,6 +111,7 @@ PRODUCT_VERSION(4);
 #include "include/obs.h"            // Do Observation Processing
 #include "include/wind.h"           // Wind Support Functions
 #include "include/dfrgas.h"         // DFRobot Gas Sensors - 1 per mux channel supported
+#include "include/dfrwrg.h"         // DFRobot Gravity HX711 Weight Sensor - Weighing Rain Gauge
 #include "include/sensirion_sen66.h"// Sensirion sen66 Sensor - 1 per mux channel supported
 #include "include/main.h"
 
@@ -121,8 +125,9 @@ char msgbuf[MAX_MSGBUF_SIZE]; // Used to hold messages
 char *msgp;                   // Pointer to message text
 char Buffer32Bytes[32];       // General storage
 int  LED_PIN = D7;            // Built in LED
-bool JustPoweredOn = true;    // Used to clear SystemStatusBits set during power on device discovery
 int  OBS_Interval=0;          // Values below 60 including 0 will have no logging to Particle
+bool JustPoweredOn = true;    // Used to clear SystemStatusBits set during power on device discovery
+bool PublishToParticle=true;  // Control if we want to publish to Particle
 bool TurnLedOff = false;      // Set true in rain gauge interrupt
 
 bool PostedResults;           // How we did in posting Observation and Need to Send Observations
@@ -149,6 +154,7 @@ void BackGroundWork() {
   Wind_TakeReading();
   dfrgas_TakeReading(); // Goes through all mux channels and takes a reading on the sensor per channel.
   sen66_TakeReading();  // Goes through all mux channels and takes a reading on the sensor per channel.
+  dfrwrg_TipCheck();    // Goes through all mux channels and keep an eye out for tips.
 
   delay (1000);
   if (TurnLedOff) {     // Turned on by rain gauge interrupt handlers
@@ -205,6 +211,7 @@ void setup() {
 
   Wire.begin();
   dfrgas_setup();
+  dfrwrg_setup();
   sen66_setup();   
 
   mux_initialize();
@@ -244,7 +251,7 @@ void setup() {
 
   Time_of_next_obs = Time.now() + 60;  // Schedule a obs 60s from now to give network a chance to connect
 
-  Fill_WindGas();
+  Fill_Samples();
 
   Output ("LOOP START");
 }
@@ -263,8 +270,10 @@ void loop() {
     RTC_UpdateCheck();
 
     // Perform an Observation, Write to SD, and Transmit observation
-    OBS_Do();
-    Time_of_next_obs = Time.now() + OBS_Interval;
+    if (Time.now() >= Time_of_next_obs) {
+      OBS_Do();
+      Time_of_next_obs = Time.now() + OBS_Interval;
+    }
 
     // Request time synchronization from the Cell network - Every 2 Hours
     if ((System.millis() - LastTimeUpdate) > (2*3600*1000)) {
